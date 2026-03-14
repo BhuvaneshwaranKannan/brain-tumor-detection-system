@@ -5,24 +5,9 @@ import nibabel as nib
 import cv2
 import tensorflow as tf
 import matplotlib.pyplot as plt
-import gradio as gr
-
 from flask import Flask, render_template, request, redirect, session
 from tensorflow.keras.models import load_model
 
-
-
-
-def demo():
-    return "Brain Tumor Detection System Running"
-
-iface = gr.Interface(
-    fn=demo,
-    inputs=[],
-    outputs="text"
-)
-
-iface.launch()
 
 
 # =========================

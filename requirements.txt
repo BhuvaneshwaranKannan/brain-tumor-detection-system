@@ -1,6 +1,7 @@
 flask
 tensorflow
 opencv-python
-nibabel
 numpy
 matplotlib
+nibabel
+gunicorn

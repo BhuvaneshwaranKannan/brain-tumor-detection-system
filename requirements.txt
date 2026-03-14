@@ -1,0 +1,6 @@
+flask
+tensorflow
+opencv-python
+nibabel
+numpy
+matplotlib

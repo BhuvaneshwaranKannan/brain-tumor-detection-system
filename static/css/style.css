@@ -1,0 +1,78 @@
+body{
+font-family:Segoe UI;
+background:#f4f6fa;
+}
+
+
+/* LOGIN / REGISTER */
+
+.auth-bg{
+background:linear-gradient(120deg,#0072ff,#00c6ff);
+height:100vh;
+display:flex;
+justify-content:center;
+align-items:center;
+}
+
+.auth-card{
+background:white;
+padding:40px;
+width:350px;
+border-radius:10px;
+box-shadow:0 10px 30px rgba(0,0,0,0.2);
+}
+
+.auth-title{
+text-align:center;
+margin-bottom:20px;
+font-weight:600;
+}
+
+
+/* DASHBOARD */
+
+.upload-card{
+padding:30px;
+border-radius:10px;
+box-shadow:0 5px 15px rgba(0,0,0,0.1);
+}
+
+.result-box{
+padding:20px;
+text-align:center;
+border-radius:10px;
+box-shadow:0 4px 10px rgba(0,0,0,0.1);
+}
+
+.result-text{
+font-size:20px;
+font-weight:600;
+}
+
+.image-card{
+padding:20px;
+border-radius:10px;
+box-shadow:0 4px 10px rgba(0,0,0,0.1);
+text-align:center;
+}
+
+.result-image{
+max-width:100%;
+border-radius:10px;
+margin-top:15px;
+}
+
+
+/* Responsive */
+
+@media(max-width:768px){
+
+.result-box{
+margin-bottom:15px;
+}
+
+.auth-card{
+width:90%;
+}
+
+}

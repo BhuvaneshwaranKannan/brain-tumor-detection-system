@@ -1,112 +1,183 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-
-<title>Dashboard</title>
-
-<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Dashboard - Brain Tumor Detection</title>
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
-
 <body>
 
-<nav class="navbar navbar-dark bg-dark">
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="spinner"></div>
+        <div class="loading-text">Analyzing MRI Scan...</div>
+        <div class="text-muted mt-2" style="font-size: 0.9rem;">Please wait while our models process the image.</div>
+    </div>
 
-<div class="container-fluid">
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg sticky-top">
+        <div class="container-fluid px-4">
+            <span class="navbar-brand">
+                <i class="fa-solid fa-brain"></i>
+                Brain Tumor AI Detection
+            </span>
+            <div class="d-flex align-items-center">
+                <span class="text-muted me-3 d-none d-md-block"><i class="fa-regular fa-user me-1"></i> Logged in</span>
+                <a href="/logout" class="btn btn-danger"><i class="fa-solid fa-arrow-right-from-bracket me-1"></i> Logout</a>
+            </div>
+        </div>
+    </nav>
 
-<span class="navbar-brand">Brain Tumor Detection Dashboard</span>
+    <!-- Main Content -->
+    <div class="container mt-4 mb-5">
+        
+        <div class="row justify-content-center">
+            <div class="col-lg-10">
+                
+                <!-- Upload Section -->
+                <div class="upload-card">
+                    <h4 class="text-center"><i class="fa-solid fa-cloud-arrow-up text-primary me-2"></i>Upload MRI Scan (.nii)</h4>
+                    <p class="text-center text-muted mb-4">Select a NIfTI format MRI scan to begin intelligent analysis.</p>
+                    
+                    <form method="POST" enctype="multipart/form-data" id="uploadForm">
+                        <div class="drop-zone" id="dropZone">
+                            <i class="fa-solid fa-file-image"></i>
+                            <h5 id="fileNameDisplay" class="mb-1">Drag & Drop or Click to Browse</h5>
+                            <p class="text-muted small mb-0">Supports .nii files</p>
+                            <input type="file" name="file" id="fileInput" accept=".nii,.nii.gz" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 py-2 fs-5"><i class="fa-solid fa-magnifying-glass me-2"></i>Analyze MRI</button>
+                    </form>
+                </div>
 
-<a href="/logout" class="btn btn-danger">Logout</a>
+                <!-- Results Section -->
+                {% if result %}
+                <hr class="my-5" style="border-color: var(--border-color); opacity: 1;">
+                
+                <h3 class="fw-bold mb-4 text-center">Analysis Results</h3>
 
-</div>
+                <div class="row g-4 mb-4">
+                    <!-- Detetion Result -->
+                    <div class="col-md-4">
+                        <div class="result-box">
+                            <h5><i class="fa-solid fa-microscope text-primary mb-2 d-block fs-3"></i>Detection</h5>
+                            <p class="result-text {% if 'No Tumor' in result %}text-success-custom{% else %}text-danger-custom{% endif %}">
+                                {{ result }}
+                            </p>
+                        </div>
+                    </div>
 
-</nav>
+                    <!-- Tumor Type -->
+                    <div class="col-md-4">
+                        <div class="result-box">
+                            <h5><i class="fa-solid fa-dna text-primary mb-2 d-block fs-3"></i>Tumor Type</h5>
+                            <p class="result-text">{{ tumor_type | title }}</p>
+                            {% if confidence %}
+                            <p class="text-muted small mt-2 mb-0 fw-medium">Confidence: <span class="text-primary">{{ confidence }}%</span></p>
+                            {% endif %}
+                        </div>
+                    </div>
 
+                    <!-- Tumor Stage -->
+                    <div class="col-md-4">
+                        <div class="result-box">
+                            <h5><i class="fa-solid fa-layer-group text-primary mb-2 d-block fs-3"></i>Severity Stage</h5>
+                            <p class="result-text">{{ stage }}</p>
+                        </div>
+                    </div>
+                </div>
 
-<div class="container mt-5">
+                <!-- Segmented Image -->
+                <div class="image-card">
+                    <h5><i class="fa-solid fa-image text-primary me-2"></i>Segmented MRI Visualization</h5>
+                    <p class="text-muted small mb-3">Red areas indicate identified anomalies</p>
+                    <img src="{{ image }}" class="result-image" alt="Segmented MRI">
+                </div>
+                {% endif %}
 
+            </div>
+        </div>
+    </div>
 
-<div class="card upload-card">
+    <!-- Interactive Scripts -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('uploadForm');
+            const overlay = document.getElementById('loadingOverlay');
+            const fileInput = document.getElementById('fileInput');
+            const fileNameDisplay = document.getElementById('fileNameDisplay');
+            const dropZone = document.getElementById('dropZone');
 
-<h4 class="text-center mb-3">Upload MRI Scan (.nii)</h4>
+            // Form Submit Show Overlay
+            if(form) {
+                form.addEventListener('submit', function() {
+                    overlay.style.display = 'flex';
+                });
+            }
 
-<form method="POST" enctype="multipart/form-data">
+            // File input change
+            if(fileInput && fileNameDisplay) {
+                fileInput.addEventListener('change', function(e) {
+                    if(e.target.files.length > 0) {
+                        fileNameDisplay.textContent = e.target.files[0].name;
+                        fileNameDisplay.classList.add('text-primary');
+                        dropZone.style.borderColor = 'var(--primary)';
+                        dropZone.style.background = '#EEF2FF';
+                    }
+                });
 
-<input type="file" name="file" class="form-control mb-3" required>
+                // Drag and drop visuals
+                ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                    dropZone.addEventListener(eventName, preventDefaults, false);
+                });
 
-<button class="btn btn-primary w-100 analyze-btn">Analyze MRI</button>
+                function preventDefaults (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
 
-</form>
+                ['dragenter', 'dragover'].forEach(eventName => {
+                    dropZone.addEventListener(eventName, highlight, false);
+                });
 
-</div>
+                ['dragleave', 'drop'].forEach(eventName => {
+                    dropZone.addEventListener(eventName, unhighlight, false);
+                });
 
+                function highlight(e) {
+                    dropZone.classList.add('dragover');
+                }
 
-{% if result %}
+                function unhighlight(e) {
+                    dropZone.classList.remove('dragover');
+                }
+                
+                dropZone.addEventListener('drop', handleDrop, false);
 
-<div class="row mt-4">
-
-<div class="col-md-4">
-
-<div class="card result-box">
-
-<h5>Tumor Detection</h5>
-
-<p class="result-text">{{result}}</p>
-
-</div>
-
-</div>
-
-
-<div class="col-md-4">
-
-<div class="card result-box">
-
-<h5>Tumor Type</h5>
-
-<p class="result-text">{{tumor_type}}</p>
-
-<p>Confidence: {{confidence}}%</p>
-
-</div>
-
-</div>
-
-
-<div class="col-md-4">
-
-<div class="card result-box">
-
-<h5>Tumor Stage</h5>
-
-<p class="result-text">{{stage}}</p>
-
-</div>
-
-</div>
-
-</div>
-
-
-<div class="card mt-4 image-card">
-
-<h5 class="text-center">Segmented MRI</h5>
-
-<img src="{{image}}" class="result-image">
-
-</div>
-
-{% endif %}
-
-</div>
-
-<script src="{{ url_for('static', filename='js/script.js') }}"></script>
-
+                function handleDrop(e) {
+                    let dt = e.dataTransfer;
+                    let files = dt.files;
+                    fileInput.files = files;
+                    
+                    if(files.length > 0) {
+                        fileNameDisplay.textContent = files[0].name;
+                        fileNameDisplay.classList.add('text-primary');
+                        dropZone.style.borderColor = 'var(--primary)';
+                        dropZone.style.background = '#EEF2FF';
+                    }
+                }
+            }
+        });
+    </script>
 </body>
 </html>

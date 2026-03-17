@@ -1,3 +1,4 @@
+from email.mime import image
 import os
 import sqlite3
 import numpy as np
@@ -393,21 +394,23 @@ def dashboard():
         # VISUALIZATION
         # =========================
 
-        plt.figure(figsize=(6,6))
+        # =========================
+# VISUALIZATION
+# =========================
 
-        plt.imshow(image, cmap="gray")
+        fig, ax = plt.subplots(figsize=(4,4))
 
-        plt.imshow(mask, cmap="jet", alpha=0.4)
+        ax.imshow(image, cmap="gray")
+        ax.imshow(mask, cmap="jet", alpha=0.4)
 
-        plt.title(f"{detection} | {tumor_type} | {stage}")
+        ax.set_title(f"{detection} | {tumor_type} | {stage}", fontsize=10)
+        ax.axis("off")
 
-        plt.axis("off")
+        result_path = os.path.join(RESULT_FOLDER, "result.png")
 
-        result_path = os.path.join(RESULT_FOLDER,"result.png")
+        plt.savefig(result_path, bbox_inches="tight", pad_inches=0, dpi=150)
 
-        plt.savefig(result_path, bbox_inches="tight", pad_inches=0)
-
-        plt.close()
+        plt.close(fig)
 
 
         return render_template(

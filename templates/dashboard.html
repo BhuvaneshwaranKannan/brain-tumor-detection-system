@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Dashboard - Brain Tumor Detection</title>
-    <!-- Google Fonts: Inter -->
+    <title>Futuristic Dashboard - Clinical AI Detection</title>
+    <!-- Google Fonts: Inter & Outfit -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Bootstrap CSS -->
@@ -15,100 +15,242 @@
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
-<body>
+<body class="medical-grid-bg">
 
-    <!-- Loading Overlay -->
+    <!-- Multi-Stage Loading Overlay -->
     <div id="loadingOverlay" class="loading-overlay">
-        <div class="spinner"></div>
-        <div class="loading-text">Analyzing MRI Scan...</div>
-        <div class="text-muted mt-2" style="font-size: 0.9rem;">Please wait while our models process the image.</div>
+        <div class="loader-container">
+            <div class="loader-spinner"></div>
+            <h4 class="mb-1" style="color: var(--primary);">Processing Scan</h4>
+            <p class="text-muted small mb-0">AI Models Initiated</p>
+            
+            <div class="loader-stages">
+                <div class="loader-stage" id="stage1"><i class="fa-solid fa-cloud-arrow-up"></i> 1. Loading MRI volume</div>
+                <div class="loader-stage" id="stage2"><i class="fa-solid fa-layer-group"></i> 2. Selecting best slice</div>
+                <div class="loader-stage" id="stage3"><i class="fa-solid fa-brain"></i> 3. Running tumor classifier</div>
+                <div class="loader-stage" id="stage4"><i class="fa-solid fa-microscope"></i> 4. Running segmentation model</div>
+                <div class="loader-stage" id="stage5"><i class="fa-solid fa-file-waveform"></i> 5. Generating clinical report</div>
+            </div>
+        </div>
     </div>
 
-    <!-- Navbar -->
+    <!-- Futuristic Navbar -->
     <nav class="navbar navbar-expand-lg sticky-top">
         <div class="container-fluid px-4">
             <span class="navbar-brand">
-                <i class="fa-solid fa-brain"></i>
-                Brain Tumor AI Detection
+                <i class="fa-solid fa-network-wired"></i>
+                NeuroAI Platform
             </span>
-            <div class="d-flex align-items-center">
-                <span class="text-muted me-3 d-none d-md-block"><i class="fa-regular fa-user me-1"></i> Logged in</span>
-                <a href="/logout" class="btn btn-danger"><i class="fa-solid fa-arrow-right-from-bracket me-1"></i> Logout</a>
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <i class="fa-solid fa-bars text-white"></i>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto ms-4">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/dashboard"><i class="fa-solid fa-chart-line me-2"></i>Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#knowledge-panel"><i class="fa-solid fa-book-medical me-2"></i>Tumor Knowledge</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/dashboard"><i class="fa-solid fa-microchip me-2"></i>MRI Analyzer</a>
+                    </li>
+                </ul>
+                <div class="d-flex align-items-center mt-3 mt-lg-0">
+                    <a href="/profile" class="text-white text-decoration-none me-4 fw-medium"><i class="fa-solid fa-user-astronaut me-2"></i> {{ session['user'].split('@')[0] | title if session.get('user') else 'Profile' }}</a>
+                    <a href="/logout" class="btn btn-danger btn-sm"><i class="fa-solid fa-power-off me-2"></i> Logout</a>
+                </div>
             </div>
         </div>
     </nav>
 
     <!-- Main Content -->
-    <div class="container mt-4 mb-5">
+    <div class="container mt-5 mb-5">
         
-        <div class="row justify-content-center">
+        {% if not result %}
+        <div class="row justify-content-center animate-up">
             <div class="col-lg-10">
                 
-                <!-- Upload Section -->
-                <div class="upload-card">
-                    <h4 class="text-center"><i class="fa-solid fa-cloud-arrow-up text-primary me-2"></i>Upload MRI Scan (.nii)</h4>
-                    <p class="text-center text-muted mb-4">Select a NIfTI format MRI scan to begin intelligent analysis.</p>
+                <!-- STEP 1: Knowledge & Guidance Panel -->
+                <div class="clinical-card glass-panel mb-5" id="knowledge-panel">
+                    <h4 class="clinical-card-title"><i class="fa-solid fa-book-open-reader text-accent"></i> Brain Tumor Knowledge</h4>
+                    <p class="clinical-card-subtitle">Familiarize yourself with neuro-oncology fundamentals and file specifications.</p>
                     
-                    <form method="POST" enctype="multipart/form-data" id="uploadForm">
-                        <div class="drop-zone" id="dropZone">
-                            <i class="fa-solid fa-file-image"></i>
-                            <h5 id="fileNameDisplay" class="mb-1">Drag & Drop or Click to Browse</h5>
-                            <p class="text-muted small mb-0">Supports .nii files</p>
-                            <input type="file" name="file" id="fileInput" accept=".nii,.nii.gz" required>
+                    <div class="accordion" id="knowledgeAccordion">
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingOne">
+                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+                                    <i class="fa-solid fa-brain me-2 text-primary"></i> What is a Brain Tumor?
+                                </button>
+                            </h2>
+                            <div id="collapseOne" class="accordion-collapse collapse show" aria-labelledby="headingOne" data-bs-parent="#knowledgeAccordion">
+                                <div class="accordion-body">
+                                    A brain tumor is an abnormal growth of cells within the brain. Benign tumors are non-cancerous, while malignant tumors are cancerous and can grow rapidly. Early detection significantly improves treatment outcomes.
+                                </div>
+                            </div>
                         </div>
-                        <button type="submit" class="btn btn-primary w-100 py-2 fs-5"><i class="fa-solid fa-magnifying-glass me-2"></i>Analyze MRI</button>
-                    </form>
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingTwo">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
+                                    <i class="fa-solid fa-viruses me-2 text-primary"></i> Types of Tumors Classified by AI
+                                </button>
+                            </h2>
+                            <div id="collapseTwo" class="accordion-collapse collapse" aria-labelledby="headingTwo" data-bs-parent="#knowledgeAccordion">
+                                <div class="accordion-body">
+                                    <ul>
+                                        <li><strong>Glioma:</strong> Originates in the glial cells that surround and support neurons. Often malignant.</li>
+                                        <li><strong>Meningioma:</strong> Forms on membranes that cover the brain and spinal cord just inside the skull. Typically benign.</li>
+                                        <li><strong>Pituitary:</strong> Develops in the pituitary gland at the base of the brain. Usually benign but affects hormones.</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingThree">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
+                                    <i class="fa-solid fa-file-medical me-2 text-primary"></i> What are .nii and .nii.gz files?
+                                </button>
+                            </h2>
+                            <div id="collapseThree" class="accordion-collapse collapse" aria-labelledby="headingThree" data-bs-parent="#knowledgeAccordion">
+                                <div class="accordion-body">
+                                    NIfTI (.nii) files are a standard format used in neuroimaging. They contain 3D volume data representing brain slices. The ".gz" extension indicates the file is compressed. You can obtain sample sets from open medical databases like TCIA (The Cancer Imaging Archive) or Kaggle.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                <!-- Results Section -->
-                {% if result %}
-                <hr class="my-5" style="border-color: var(--border-color); opacity: 1;">
-                
-                <h3 class="fw-bold mb-4 text-center">Analysis Results</h3>
+                    <!-- STEP 2: Analysis Mode Selection -->
+                    <div class="clinical-card glass-panel mb-5 animate-up delay-1">
+                        <h4 class="clinical-card-title"><i class="fa-solid fa-sliders text-accent"></i> Select AI Analysis Mode</h4>
+                        <p class="clinical-card-subtitle">Choose the depth of scanning required for your clinical workflow.</p>
+                        
+                        <div class="row g-4 mb-3">
+                            <div class="col-md-4">
+                                <div class="mode-card" style="cursor: pointer;" onclick="window.location.href='/detect'">
+                                    <i class="fa-solid fa-expand mode-icon"></i>
+                                    <h5 class="mode-title">Tumor Detection</h5>
+                                    <p class="mode-desc">Fast classification to detect whether a tumor exists in the MRI.</p>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mode-card" style="cursor: pointer;" onclick="window.location.href='/segment'">
+                                    <i class="fa-solid fa-draw-polygon mode-icon"></i>
+                                    <h5 class="mode-title">Tumor Segmentation</h5>
+                                    <p class="mode-desc">Isolates and precisely locates the tumor boundary region.</p>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mode-card selected border-accent" style="cursor: pointer;" onclick="window.location.href='/fullscan'">
+                                    <div class="position-absolute top-0 start-50 translate-middle badge bg-primary rounded-pill">Recommended</div>
+                                    <i class="fa-solid fa-microchip mode-icon text-accent"></i>
+                                    <h5 class="mode-title">Full AI Diagnostic</h5>
+                                    <p class="mode-desc">Detection + Classification + Stage + 3D Segment Visualization.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
-                <div class="row g-4 mb-4">
-                    <!-- Detetion Result -->
-                    <div class="col-md-4">
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Results Section -->
+        {% if result %}
+        <div class="row justify-content-center animate-up">
+            <div class="col-lg-11">
+                <div class="clinical-card glass-panel">
+                    
+                    <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3" style="border-color: var(--border)!important;">
+                        <h3 class="report-header mb-0 border-0 pb-0"><i class="fa-solid fa-notes-medical"></i> Automated AI Diagnostic Report</h3>
+                        <a href="/dashboard" class="btn btn-primary btn-sm"><i class="fa-solid fa-rotate-left me-2"></i>New Scan</a>
+                    </div>
+                    
+                    <div class="result-grid">
+                        <!-- 1. Detection Result -->
                         <div class="result-box">
-                            <h5><i class="fa-solid fa-microscope text-primary mb-2 d-block fs-3"></i>Detection</h5>
+                            <h5><i class="fa-solid fa-eye text-accent me-2"></i>1. Detection Status</h5>
                             <p class="result-text {% if 'No Tumor' in result %}text-success-custom{% else %}text-danger-custom{% endif %}">
                                 {{ result }}
                             </p>
                         </div>
-                    </div>
 
-                    <!-- Tumor Type -->
-                    <div class="col-md-4">
+                        <!-- 2 & 3. Tumor Type and Confidence -->
                         <div class="result-box">
-                            <h5><i class="fa-solid fa-dna text-primary mb-2 d-block fs-3"></i>Tumor Type</h5>
+                            <h5><i class="fa-solid fa-dna text-accent me-2"></i>2. Variant Classification</h5>
                             <p class="result-text">{{ tumor_type | title }}</p>
+                            
                             {% if confidence %}
-                            <p class="text-muted small mt-2 mb-0 fw-medium">Confidence: <span class="text-primary">{{ confidence }}%</span></p>
+                            <div class="mt-3">
+                                <h5><i class="fa-solid fa-chart-pie text-accent me-2"></i>3. AI Confidence ({{ confidence }}%)</h5>
+                                <div class="confidence-container">
+                                    <div class="confidence-bar" style="width: 0%;" data-width="{{ confidence }}%"></div>
+                                </div>
+                            </div>
                             {% endif %}
                         </div>
-                    </div>
 
-                    <!-- Tumor Stage -->
-                    <div class="col-md-4">
+                        <!-- 4. Tumor Stage -->
                         <div class="result-box">
-                            <h5><i class="fa-solid fa-layer-group text-primary mb-2 d-block fs-3"></i>Severity Stage</h5>
+                            <h5><i class="fa-solid fa-layer-group text-accent me-2"></i>4. Severity Stage</h5>
                             <p class="result-text">{{ stage }}</p>
+                            <div class="d-flex mt-2 gap-1">
+                                <div class="flex-grow-1" style="height: 6px; border-radius: 3px; background: {% if stage == 'Stage 1' %}var(--success){% else %}var(--border){% endif %};"></div>
+                                <div class="flex-grow-1" style="height: 6px; border-radius: 3px; background: {% if stage == 'Stage 2' %}var(--warning){% else %}var(--border){% endif %};"></div>
+                                <div class="flex-grow-1" style="height: 6px; border-radius: 3px; background: {% if stage == 'Stage 3' %}#F97316{% else %}var(--border){% endif %};"></div>
+                                <div class="flex-grow-1" style="height: 6px; border-radius: 3px; background: {% if stage == 'Stage 4' %}var(--danger){% else %}var(--border){% endif %};"></div>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <!-- Segmented Image -->
-                <div class="image-card">
-                    <h5><i class="fa-solid fa-image text-primary me-2"></i>Segmented MRI Visualization</h5>
-                    <p class="text-muted small mb-3">Red areas indicate identified anomalies</p>
-                    <img src="{{ image }}" class="result-image" alt="Segmented MRI">
-                </div>
-                {% endif %}
+                    <div class="row mb-2">
+                        <!-- 5. Segmented Image -->
+                        <div class="col-lg-5 mb-4 mb-lg-0">
+                            <div class="viewer-panel h-100">
+                                <div class="viewer-header">
+                                    <h5><i class="fa-solid fa-vr-cardboard me-2"></i>5. Annotated MRI Viewer</h5>
+                                    <span class="badge bg-primary">Slice Analysis</span>
+                                </div>
+                                <div class="p-3 text-center bg-dark">
+                                    <img src="{{ image }}" class="result-image" alt="Segmented MRI">
+                                </div>
+                            </div>
+                        </div>
 
+                        <!-- 6. Clinical Notes -->
+                        <div class="col-lg-7">
+                            <div class="result-box h-100" style="border-left: 4px solid var(--accent);">
+                                <h5><i class="fa-solid fa-stethoscope text-accent me-2"></i>6. Clinical Notes & Observations</h5>
+                                <p class="text-secondary mt-3" style="font-size: 1.05rem; line-height: 1.8;">
+                                    {% if result != 'No Tumor Detected' %}
+                                        Based on the {{ stage }} {{ tumor_type | title }} morphology detected, the patient may exhibit the following clinical indications and associated symptoms:<br><br>
+                                        <strong>{{ side_effects }}</strong>
+                                    {% else %}
+                                        Scan appears normal. No anomalous growths or abnormal tissue densities detected. Routine monitoring recommended based on patient history.
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Disclaimer -->
+                    <div class="clinical-alert">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                        <div>
+                            <strong>Clinical Disclaimer:</strong> This portal utilizes artificial intelligence for preliminary scan analysis. It is intended to assist, not replace, formal diagnosis by a certified neuro-oncologist or radiologist.
+                        </div>
+                    </div>
+                    
+                </div>
             </div>
         </div>
+        {% endif %}
+
     </div>
 
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
     <!-- Interactive Scripts -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -117,22 +259,56 @@
             const fileInput = document.getElementById('fileInput');
             const fileNameDisplay = document.getElementById('fileNameDisplay');
             const dropZone = document.getElementById('dropZone');
+            const stages = [
+                document.getElementById('stage1'),
+                document.getElementById('stage2'),
+                document.getElementById('stage3'),
+                document.getElementById('stage4'),
+                document.getElementById('stage5')
+            ];
 
-            // Form Submit Show Overlay
+            // Form Submit Show Overlay and Animate Stages
             if(form) {
-                form.addEventListener('submit', function() {
+                form.addEventListener('submit', function(e) {
+                    if (fileInput.files.length === 0) return;
                     overlay.style.display = 'flex';
+                    
+                    // Simulate multi-stage loading BEFORE sumbitting natively
+                    let currentStage = 0;
+                    
+                    function animateStages() {
+                        if (currentStage >= stages.length) {
+                            return; // Wait for form to actually submit and page reload
+                        }
+                        
+                        // Mark previous as completed
+                        if (currentStage > 0) {
+                            stages[currentStage-1].classList.remove('active');
+                            stages[currentStage-1].classList.add('completed');
+                            stages[currentStage-1].innerHTML = stages[currentStage-1].innerHTML.replace(/<i.*><\/i>/, '<i class="fa-solid fa-check"></i>');
+                        }
+                        
+                        // Set current as active
+                        stages[currentStage].classList.add('active');
+                        
+                        currentStage++;
+                        
+                        // Random delay between 600ms and 1500ms
+                        setTimeout(animateStages, 800 + Math.random() * 800);
+                    }
+                    
+                    setTimeout(animateStages, 200);
                 });
             }
 
-            // File input change
+            // File input logic
             if(fileInput && fileNameDisplay) {
                 fileInput.addEventListener('change', function(e) {
                     if(e.target.files.length > 0) {
-                        fileNameDisplay.textContent = e.target.files[0].name;
+                        fileNameDisplay.innerHTML = `<i class="fa-solid fa-file-medical text-primary me-2"></i>${e.target.files[0].name}`;
                         fileNameDisplay.classList.add('text-primary');
-                        dropZone.style.borderColor = 'var(--primary)';
-                        dropZone.style.background = '#EEF2FF';
+                        dropZone.style.borderColor = 'var(--accent)';
+                        dropZone.style.background = 'rgba(0, 229, 255, 0.05)';
                     }
                 });
 
@@ -154,28 +330,28 @@
                     dropZone.addEventListener(eventName, unhighlight, false);
                 });
 
-                function highlight(e) {
-                    dropZone.classList.add('dragover');
-                }
-
-                function unhighlight(e) {
-                    dropZone.classList.remove('dragover');
-                }
+                function highlight(e) { dropZone.classList.add('dragover'); }
+                function unhighlight(e) { dropZone.classList.remove('dragover'); }
                 
-                dropZone.addEventListener('drop', handleDrop, false);
-
-                function handleDrop(e) {
+                dropZone.addEventListener('drop', function(e) {
                     let dt = e.dataTransfer;
                     let files = dt.files;
                     fileInput.files = files;
                     
                     if(files.length > 0) {
-                        fileNameDisplay.textContent = files[0].name;
-                        fileNameDisplay.classList.add('text-primary');
-                        dropZone.style.borderColor = 'var(--primary)';
-                        dropZone.style.background = '#EEF2FF';
+                        fileNameDisplay.innerHTML = `<i class="fa-solid fa-file-medical text-primary me-2"></i>${files[0].name}`;
+                        dropZone.style.borderColor = 'var(--accent)';
+                        dropZone.style.background = 'rgba(0, 229, 255, 0.05)';
                     }
-                }
+                }, false);
+            }
+
+            // Animate confidence bar on load
+            const confBar = document.querySelector('.confidence-bar');
+            if(confBar) {
+                setTimeout(() => {
+                    confBar.style.width = confBar.getAttribute('data-width');
+                }, 500);
             }
         });
     </script>

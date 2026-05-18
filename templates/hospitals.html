@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Nearby Hospitals - NeuroAI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background: #f4f7f6; }
+        .header-bg {
+            background: linear-gradient(135deg, #0dcaf0 0%, #0a8fa8 100%);
+            color: #fff;
+            padding: 56px 0 36px;
+            margin-bottom: -40px;
+            border-bottom-left-radius: 32px;
+            border-bottom-right-radius: 32px;
+        }
+        .glass-card {
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+            border: 1px solid rgba(0,0,0,0.05);
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+        .hospital-card {
+            background: #fff;
+            border-radius: 14px;
+            border: 1px solid #dee2e6;
+            padding: 18px 20px;
+            margin-bottom: 14px;
+            transition: box-shadow 0.2s, transform 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+        }
+        .hospital-card:hover {
+            box-shadow: 0 6px 24px rgba(13,202,240,0.15);
+            transform: translateY(-2px);
+        }
+        .specialty-badge {
+            display: inline-block;
+            background: rgba(13,202,240,0.1);
+            color: #0a8fa8;
+            border: 1px solid rgba(13,202,240,0.3);
+            border-radius: 20px;
+            padding: 3px 12px;
+            font-size: 0.78rem;
+            font-weight: 600;
+        }
+        .distance-badge {
+            background: rgba(13,110,253,0.08);
+            color: #0d6efd;
+            border-radius: 20px;
+            padding: 3px 10px;
+            font-size: 0.78rem;
+            font-weight: 600;
+        }
+        #loadingState, #errorState, #noResultsState { display: none; }
+        .spinner-ring {
+            width: 52px; height: 52px;
+            border: 4px solid rgba(13,202,240,0.2);
+            border-top-color: #0dcaf0;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Autocomplete */
+        .ac-wrapper { position: relative; }
+        .ac-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0; right: 0;
+            background: #fff;
+            border: 1px solid #dee2e6;
+            border-top: none;
+            border-radius: 0 0 10px 10px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+            z-index: 999;
+            max-height: 260px;
+            overflow-y: auto;
+            display: none;
+        }
+        .ac-item {
+            padding: 10px 16px;
+            cursor: pointer;
+            font-size: 0.92rem;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .ac-item:last-child { border-bottom: none; }
+        .ac-item:hover, .ac-item.active {
+            background: rgba(13,202,240,0.08);
+            color: #0a8fa8;
+        }
+        .ac-item .ac-main { font-weight: 600; }
+        .ac-item .ac-sub { font-size: 0.78rem; color: #888; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    </style>
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-transparent position-absolute w-100" style="z-index:10;">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="/patient_dashboard">
+                <i class="fa-solid fa-brain me-2"></i>NeuroAI Patient
+            </a>
+            <div class="collapse navbar-collapse justify-content-end">
+                <a href="/patient_dashboard" class="btn btn-outline-light btn-sm me-2">
+                    <i class="fa-solid fa-arrow-left me-1"></i> Back
+                </a>
+                <a href="/logout" class="btn btn-outline-light btn-sm">
+                    <i class="fa-solid fa-power-off me-1"></i>Logout
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Header -->
+    <div class="header-bg text-center">
+        <div class="container pt-5">
+            <h2 class="fw-bold mb-1"><i class="fa-solid fa-hospital-user me-2"></i>Nearby Hospitals</h2>
+            <p class="opacity-75 mb-0">Hospitals and medical centers near your location</p>
+        </div>
+    </div>
+
+    <!-- Main -->
+    <div class="container mt-5 position-relative pb-5">
+
+        <!-- Search Bar -->
+        <div class="glass-card mb-4">
+            <div class="row align-items-end g-3">
+                <div class="col-md-8">
+                    <label class="form-label fw-medium mb-1">
+                        <i class="fa-solid fa-location-dot me-1 text-info"></i>Search by City or Place
+                    </label>
+                    <div class="ac-wrapper">
+                        <input type="text" id="citySearch" class="form-control" autocomplete="off"
+                               placeholder="Start typing a city name e.g. Chennai, Mumbai..."
+                               value="{{ city }}">
+                        <div class="ac-dropdown" id="acDropdown"></div>
+                    </div>
+                    <div class="text-muted small mt-1">
+                        <i class="fa-solid fa-circle-info me-1"></i>
+                        You can save your city in <a href="/profile" class="text-info">Profile</a> for quick access.
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <button class="btn btn-info text-white fw-bold w-100 shadow-sm" id="searchBtn" onclick="searchHospitals()">
+                        <i class="fa-solid fa-magnifying-glass me-2"></i>Search Hospitals
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading -->
+        <div id="loadingState" class="text-center py-5">
+            <div class="spinner-ring mx-auto mb-3"></div>
+            <h5 class="text-muted fw-medium" id="loadingMsg">Searching for hospitals...</h5>
+            <p class="text-muted small">Fetching nearby hospitals from OpenStreetMap</p>
+        </div>
+
+        <!-- Error -->
+        <div id="errorState" class="text-center py-5">
+            <i class="fa-solid fa-circle-xmark text-danger fa-3x mb-3"></i>
+            <h5 class="text-danger">Search Failed</h5>
+            <p class="text-muted small" id="errorMsg">Could not connect to search service. Please try again.</p>
+            <button class="btn btn-outline-danger btn-sm" onclick="searchHospitals()">
+                <i class="fa-solid fa-rotate-right me-1"></i>Retry
+            </button>
+        </div>
+
+        <!-- No Results -->
+        <div id="noResultsState" class="text-center py-5">
+            <i class="fa-solid fa-hospital-slash text-muted fa-3x mb-3"></i>
+            <h5 class="text-muted">No hospitals found</h5>
+            <p class="text-muted small">No hospitals found within 30 km of <strong id="noResultsCity"></strong>.<br>
+               Try a larger city name or check spelling.</p>
+            <a href="https://www.google.com/maps/search/hospital+near+me" target="_blank" class="btn btn-outline-info btn-sm mt-2">
+                <i class="fa-brands fa-google me-1"></i>Search on Google Maps
+            </a>
+        </div>
+
+        <!-- Results -->
+        <div id="resultsSection" style="display:none;">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold mb-0"><i class="fa-solid fa-map-pin text-info me-2"></i>
+                    Hospitals near <span id="resultCityLabel" class="text-info"></span>
+                </h5>
+                <span class="badge bg-info bg-opacity-10 text-info border border-info" id="countBadge"></span>
+            </div>
+            <div id="hospitalList"></div>
+        </div>
+
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // ──────────────────────────────────────────
+        // AUTOCOMPLETE
+        // ──────────────────────────────────────────
+        const input = document.getElementById("citySearch");
+        const dropdown = document.getElementById("acDropdown");
+        let acTimer = null;
+        let selectedLat = null, selectedLon = null;
+
+        input.addEventListener("input", function() {
+            const val = this.value.trim();
+            clearTimeout(acTimer);
+            if (val.length < 2) { closeDropdown(); return; }
+            acTimer = setTimeout(() => fetchSuggestions(val), 300);
+        });
+
+        input.addEventListener("keydown", function(e) {
+            const items = dropdown.querySelectorAll(".ac-item");
+            const active = dropdown.querySelector(".ac-item.active");
+            if (e.key === "ArrowDown") {
+                e.preventDefault();
+                const next = active ? active.nextElementSibling : items[0];
+                if (next) { active?.classList.remove("active"); next.classList.add("active"); }
+            } else if (e.key === "ArrowUp") {
+                e.preventDefault();
+                const prev = active ? active.previousElementSibling : items[items.length-1];
+                if (prev) { active?.classList.remove("active"); prev.classList.add("active"); }
+            } else if (e.key === "Enter") {
+                e.preventDefault();
+                if (active) { active.click(); }
+                else { closeDropdown(); searchHospitals(); }
+            } else if (e.key === "Escape") { closeDropdown(); }
+        });
+
+        document.addEventListener("click", function(e) {
+            if (!e.target.closest(".ac-wrapper")) closeDropdown();
+        });
+
+        async function fetchSuggestions(query) {
+            try {
+                const res = await fetch(
+                    `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=6&addressdetails=1`,
+                    { headers: { "Accept-Language": "en", "User-Agent": "NeuroAI Hospital Finder/1.0" } }
+                );
+                const data = await res.json();
+                renderSuggestions(data);
+            } catch(e) { closeDropdown(); }
+        }
+
+        function renderSuggestions(results) {
+            if (!results || results.length === 0) { closeDropdown(); return; }
+            dropdown.style.display = "block";
+            dropdown.innerHTML = results.map(r => {
+                const parts = r.display_name.split(",");
+                const mainLabel = parts[0].trim();
+                const subLabel = parts.slice(1, 3).join(",").trim();
+                return `<div class="ac-item" data-lat="${r.lat}" data-lon="${r.lon}" data-name="${mainLabel}">
+                    <i class="fa-solid fa-location-dot text-info" style="flex-shrink:0;"></i>
+                    <div style="overflow:hidden;">
+                        <div class="ac-main">${mainLabel}</div>
+                        <div class="ac-sub">${subLabel}</div>
+                    </div>
+                </div>`;
+            }).join("");
+            dropdown.querySelectorAll(".ac-item").forEach(item => {
+                item.addEventListener("click", function() {
+                    input.value = this.dataset.name;
+                    selectedLat = this.dataset.lat;
+                    selectedLon = this.dataset.lon;
+                    closeDropdown();
+                    searchHospitals(selectedLat, selectedLon, this.dataset.name);
+                });
+            });
+        }
+
+        function closeDropdown() { dropdown.style.display = "none"; }
+
+        // ──────────────────────────────────────────
+        // AUTO-SEARCH on page load if city preset
+        // ──────────────────────────────────────────
+        document.addEventListener("DOMContentLoaded", function() {
+            const city = input.value.trim();
+            if (city) searchHospitals(null, null, city);
+        });
+
+        // ──────────────────────────────────────────
+        // GEOCODE HELPER — smarter city resolution
+        // ──────────────────────────────────────────
+        async function geocodeCity(cityVal) {
+            const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(cityVal)}&format=json&limit=5&addressdetails=1`;
+            const res = await fetch(url, {
+                headers: { "Accept-Language": "en", "User-Agent": "NeuroAI Hospital Finder/1.0" }
+            });
+            const data = await res.json();
+            if (!data || data.length === 0) return null;
+            // Prefer city/town/village results for better accuracy
+            const preferred = data.find(r =>
+                ["city","town","village","municipality","suburb","administrative"].includes(r.type) ||
+                r.class === "place" || r.class === "boundary"
+            );
+            return preferred || data[0];
+        }
+
+        // ──────────────────────────────────────────
+        // OVERPASS FETCH with mirror fallback
+        // ──────────────────────────────────────────
+        const OVERPASS_MIRRORS = [
+            "https://overpass-api.de/api/interpreter",
+            "https://overpass.kumi.systems/api/interpreter",
+            "https://maps.mail.ru/osm/tools/overpass/api/interpreter"
+        ];
+
+        async function fetchOverpass(query) {
+            for (const mirror of OVERPASS_MIRRORS) {
+                try {
+                    const controller = new AbortController();
+                    const timer = setTimeout(() => controller.abort(), 45000);
+                    const res = await fetch(mirror, { method: "POST", body: query, signal: controller.signal });
+                    clearTimeout(timer);
+                    if (!res.ok) continue;
+                    return await res.json();
+                } catch(e) {
+                    console.warn("Overpass mirror failed:", mirror, e.message);
+                }
+            }
+            throw new Error("All Overpass mirrors failed.");
+        }
+
+        // ──────────────────────────────────────────
+        // STATES
+        // ──────────────────────────────────────────
+        function setLoading(msg) {
+            document.getElementById("loadingState").style.display = "block";
+            document.getElementById("errorState").style.display = "none";
+            document.getElementById("noResultsState").style.display = "none";
+            document.getElementById("resultsSection").style.display = "none";
+            document.getElementById("loadingMsg").textContent = msg || "Searching for hospitals...";
+        }
+        function setError(msg) {
+            document.getElementById("loadingState").style.display = "none";
+            document.getElementById("errorState").style.display = "block";
+            document.getElementById("errorMsg").textContent = msg;
+        }
+
+        // ──────────────────────────────────────────
+        // SPECIALTY LABEL
+        // ──────────────────────────────────────────
+        function getSpecialty(tags) {
+            const name = (tags.name || "").toLowerCase();
+            const spec = (tags["healthcare:speciality"] || tags["speciality"] || "").toLowerCase();
+            const combined = name + " " + spec;
+            if (combined.includes("neuro") || combined.includes("brain")) return "Neurology";
+            if (combined.includes("cancer") || combined.includes("oncol")) return "Oncology Center";
+            if (combined.includes("neurosurg")) return "Neurosurgery";
+            if (combined.includes("children") || combined.includes("paed")) return "Children's Hospital";
+            if (combined.includes("government") || combined.includes("govt") || combined.includes("district")) return "Government Hospital";
+            if (combined.includes("multi") || combined.includes("general")) return "General Hospital";
+            if (spec) return spec.charAt(0).toUpperCase() + spec.slice(1);
+            return "Medical Center";
+        }
+
+        // ──────────────────────────────────────────
+        // MAIN SEARCH
+        // ──────────────────────────────────────────
+        async function searchHospitals(lat, lon, label) {
+            const cityVal = label || input.value.trim();
+            if (!cityVal) { alert("Please enter a city name."); return; }
+
+            setLoading("Locating " + cityVal + "...");
+
+            try {
+                // Step 1: Geocode if no lat/lon from autocomplete
+                if (!lat || !lon) {
+                    const geo = await geocodeCity(cityVal);
+                    if (!geo) {
+                        setError(`"${cityVal}" not found. Try a different spelling or a nearby major city.`);
+                        return;
+                    }
+                    lat = geo.lat;
+                    lon = geo.lon;
+                }
+
+                document.getElementById("loadingMsg").textContent = `Found ${cityVal}. Fetching hospitals... (may take up to 30s)`;
+
+                // Step 2: Overpass query — broader tag coverage, 50 km radius, 45s timeout
+                const overpassQuery = `[out:json][timeout:45];
+(
+  node["amenity"="hospital"](around:50000,${lat},${lon});
+  way["amenity"="hospital"](around:50000,${lat},${lon});
+  relation["amenity"="hospital"](around:50000,${lat},${lon});
+  node["healthcare"="hospital"](around:50000,${lat},${lon});
+  way["healthcare"="hospital"](around:50000,${lat},${lon});
+  node["healthcare"="clinic"](around:50000,${lat},${lon});
+  way["healthcare"="clinic"](around:50000,${lat},${lon});
+);
+out center 40;`;
+
+                const overpassData = await fetchOverpass(overpassQuery);
+                const elements = overpassData.elements || [];
+
+                // Step 3: Filter & deduplicate & sort
+                const excludes = ['dental', 'dentist', 'eye', 'opthal', 'skin', 'dermat', 'vision', 'tooth', 'vet'];
+                function haversine(la1, lo1, la2, lo2) {
+                    const R = 6371, dL=(la2-la1)*Math.PI/180, dO=(lo2-lo1)*Math.PI/180;
+                    const a = Math.sin(dL/2)**2 + Math.cos(la1*Math.PI/180)*Math.cos(la2*Math.PI/180)*Math.sin(dO/2)**2;
+                    return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+                }
+
+                const seen = new Set();
+                let hospitals = elements
+                    .filter(el => el.tags?.name && !excludes.some(e => el.tags.name.toLowerCase().includes(e)))
+                    .map(el => {
+                        const hLat = el.lat ?? el.center?.lat;
+                        const hLon = el.lon ?? el.center?.lon;
+                        if (!hLat || !hLon) return null;
+                        const key = el.tags.name.toLowerCase().replace(/\s+/g,'');
+                        if (seen.has(key)) return null;
+                        seen.add(key);
+                        return {
+                            name: el.tags.name, hLat, hLon,
+                            distance: haversine(parseFloat(lat), parseFloat(lon), hLat, hLon),
+                            specialty: getSpecialty(el.tags),
+                            addr: el.tags["addr:full"] ||
+                                  [el.tags["addr:street"], el.tags["addr:city"]].filter(Boolean).join(", ") ||
+                                  "Address not available",
+                            phone: el.tags["phone"] || el.tags["contact:phone"] || ""
+                        };
+                    })
+                    .filter(Boolean)
+                    .sort((a, b) => a.distance - b.distance)
+                    .slice(0, 20);
+
+                // Step 4: Render
+                document.getElementById("loadingState").style.display = "none";
+
+                if (hospitals.length === 0) {
+                    document.getElementById("noResultsState").style.display = "block";
+                    document.getElementById("noResultsCity").textContent = cityVal;
+                    return;
+                }
+
+                document.getElementById("resultsSection").style.display = "block";
+                document.getElementById("resultCityLabel").textContent = cityVal;
+                document.getElementById("countBadge").textContent = hospitals.length + " hospitals found";
+                document.getElementById("hospitalList").innerHTML = hospitals.map(h => `
+                    <div class="hospital-card">
+                        <div>
+                            <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                                <span class="fw-bold text-dark" style="font-size:1.05rem;">
+                                    <i class="fa-solid fa-hospital text-info me-2"></i>${h.name}
+                                </span>
+                                <span class="distance-badge">${h.distance.toFixed(1)} km</span>
+                            </div>
+                            <div class="text-muted small mb-2">
+                                <i class="fa-solid fa-location-dot me-1"></i>${h.addr}
+                                ${h.phone ? `&bull; <i class="fa-solid fa-phone me-1 ms-1"></i>${h.phone}` : ""}
+                            </div>
+                            <span class="specialty-badge">
+                                <i class="fa-solid fa-stethoscope me-1"></i>${h.specialty}
+                            </span>
+                        </div>
+                        <a href="https://www.google.com/maps/dir/?api=1&destination=${h.hLat},${h.hLon}"
+                           target="_blank" class="btn btn-sm text-white fw-medium flex-shrink-0"
+                           style="background:#0dcaf0; white-space:nowrap;">
+                            <i class="fa-solid fa-map-location-dot me-1"></i>Open in Maps
+                        </a>
+                    </div>
+                `).join("");
+
+            } catch(err) {
+                setError("Failed to fetch data. Check your internet and try again. If the issue persists, the map service may be temporarily overloaded.");
+                console.error(err);
+            }
+        }
+    </script>
+</body>
+</html>

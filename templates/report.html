@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Detailed Report - Clinical AI Detection</title>
+    <!-- Google Fonts: Inter & Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="medical-grid-bg">
+
+    <!-- Futuristic Navbar -->
+    <nav class="navbar navbar-expand-lg sticky-top">
+        <div class="container-fluid px-4">
+            <span class="navbar-brand">
+                <i class="fa-solid fa-network-wired"></i>
+                NeuroAI Platform
+            </span>
+            <div class="d-flex align-items-center mt-3 mt-lg-0">
+                <a href="/patients" class="btn btn-primary btn-sm me-3"><i class="fa-solid fa-arrow-left me-2"></i> Back to Patients</a>
+                <a href="/logout" class="btn btn-danger btn-sm"><i class="fa-solid fa-power-off me-2"></i> Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container mt-5 mb-5 animate-up">
+        <div class="row justify-content-center">
+            <div class="col-lg-11">
+                <div class="clinical-card glass-panel">
+                    
+                    <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3" style="border-color: var(--border)!important;">
+                        <div>
+                            <h3 class="report-header mb-0 border-0 pb-0"><i class="fa-solid fa-notes-medical"></i> Clinical Case Report</h3>
+                            <span class="badge bg-secondary fs-6 mt-1">{{ report.date }}</span>
+                        </div>
+                        
+                        {% if session.get('role') == 'doctor' and report.is_approved == 0 %}
+                        <div class="d-flex gap-2">
+                            <form action="/approve_report/{{ report.id }}" method="POST" class="m-0">
+                                <button type="submit" class="btn btn-success px-4 shadow-sm"><i class="fa-solid fa-check me-2"></i> Approve Report</button>
+                            </form>
+                            <form action="/reject_report/{{ report.id }}" method="POST" class="m-0">
+                                <button type="submit" class="btn btn-outline-danger px-4 shadow-sm"><i class="fa-solid fa-xmark me-2"></i> Reject</button>
+                            </form>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="row mb-4">
+                        <div class="col-sm-6 mb-3">
+                            <div class="p-3 bg-dark rounded border border-secondary shadow-sm">
+                                <span class="text-muted d-block small mb-1">PATIENT NAME</span>
+                                <h4 class="mb-0 text-white">{{ report.patient_name }}</h4>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 mb-3">
+                            <div class="p-3 bg-dark rounded border border-secondary shadow-sm">
+                                <span class="text-muted d-block small mb-1">ATTENDING DOCTOR</span>
+                                <h4 class="mb-0 text-white">{{ report.doctor_email }}</h4>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="result-grid mb-4">
+                        <!-- 1. Detection Result -->
+                        <div class="result-box">
+                            <h5><i class="fa-solid fa-eye text-accent me-2"></i>1. Detection Status</h5>
+                            <p class="result-text {% if 'No Tumor' in report.result %}text-success-custom{% else %}text-danger-custom{% endif %}">
+                                {{ report.result }}
+                            </p>
+                        </div>
+
+                        <!-- 2 & 3. Tumor Type and Confidence -->
+                        <div class="result-box">
+                            <h5><i class="fa-solid fa-dna text-accent me-2"></i>2. Variant Classification</h5>
+                            <p class="result-text">{{ report.tumor_type | title }}</p>
+                            
+                            {% if report.confidence > 0 %}
+                            <div class="mt-3">
+                                <h5><i class="fa-solid fa-chart-pie text-accent me-2"></i>3. AI Confidence ({{ report.confidence }}%)</h5>
+                                <div class="confidence-container">
+                                    <div class="confidence-bar" style="width: 0%;" data-width="{{ report.confidence }}%"></div>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- 4. Tumor Stage -->
+                        <div class="result-box">
+                            <h5><i class="fa-solid fa-layer-group text-accent me-2"></i>4. Severity Stage & Risk Level</h5>
+                            <p class="result-text">
+                                {{ report.stage }}
+                                {% if report.stage == 'Stage 4' %}
+                                    <span class="badge bg-danger ms-2" style="font-size: 0.6em; vertical-align: middle;">Critical Risk</span>
+                                {% elif report.stage == 'Stage 3' %}
+                                    <span class="badge bg-warning text-dark ms-2" style="font-size: 0.6em; vertical-align: middle;">High Risk</span>
+                                {% elif report.stage in ['Stage 1', 'Stage 2'] %}
+                                    <span class="badge bg-primary ms-2" style="font-size: 0.6em; vertical-align: middle;">Moderate Risk</span>
+                                {% endif %}
+                            </p>
+                            <div class="d-flex mt-2 gap-1">
+                                <div class="flex-grow-1" style="height: 6px; border-radius: 3px; background: {% if report.stage == 'Stage 1' %}var(--success){% else %}var(--border){% endif %};"></div>
+                                <div class="flex-grow-1" style="height: 6px; border-radius: 3px; background: {% if report.stage == 'Stage 2' %}var(--warning){% else %}var(--border){% endif %};"></div>
+                                <div class="flex-grow-1" style="height: 6px; border-radius: 3px; background: {% if report.stage == 'Stage 3' %}#F97316{% else %}var(--border){% endif %};"></div>
+                                <div class="flex-grow-1" style="height: 6px; border-radius: 3px; background: {% if report.stage == 'Stage 4' %}var(--danger){% else %}var(--border){% endif %};"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-2">
+                        <!-- 5. Segmented Image -->
+                        <div class="col-lg-5 mb-4 mb-lg-0">
+                            <div class="viewer-panel h-100">
+                                <div class="viewer-header">
+                                    <h5><i class="fa-solid fa-vr-cardboard me-2"></i>5. Annotated MRI Viewer</h5>
+                                    <span class="badge bg-primary">Slice Analysis (Idx {{ report.slice_index }})</span>
+                                </div>
+                                <div class="p-3 text-center bg-dark">
+                                    {% if report.image_path %}
+                                    <img src="/{{ report.image_path }}" class="result-image" alt="Segmented MRI">
+                                    {% else %}
+                                    <span class="text-muted">No Image Data Extracted</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 6. Clinical Notes -->
+                        <div class="col-lg-7">
+                            <div class="result-box h-100" style="border-left: 4px solid var(--accent);">
+                                <h5><i class="fa-solid fa-stethoscope text-accent me-2"></i>6. Clinical Notes & Observations</h5>
+                                <p class="text-secondary mt-3" style="font-size: 1.05rem; line-height: 1.8;">
+                                    {{ report.clinical_notes }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Disclaimer -->
+                    <div class="clinical-alert mt-4">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                        <div>
+                            <strong>Clinical Disclaimer:</strong> This portal utilizes artificial intelligence for preliminary scan analysis. It is intended to assist, not replace, formal diagnosis by a certified neuro-oncologist or radiologist.
+                        </div>
+                    </div>
+                    
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Animate confidence bar
+            setTimeout(() => {
+                document.querySelectorAll('.confidence-bar').forEach(bar => {
+                    bar.style.width = bar.getAttribute('data-width');
+                });
+            }, 500);
+        });
+    </script>
+</body>
+</html>

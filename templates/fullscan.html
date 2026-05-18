@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Full AI Diagnostic - NeuroAI</title>
+    <!-- Google Fonts: Inter & Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="medical-grid-bg">
+
+    <!-- Multi-Stage Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="loader-container">
+            <div class="loader-spinner"></div>
+            <h4 class="mb-1" style="color: var(--primary);">Processing Scan</h4>
+            <p class="text-muted small mb-0">AI Models Initiated</p>
+            
+            <div class="loader-stages">
+                <div class="loader-stage" id="stage1"><i class="fa-solid fa-cloud-arrow-up"></i> 1. Loading MRI volume</div>
+                <div class="loader-stage" id="stage2"><i class="fa-solid fa-layer-group"></i> 2. Selecting best slice</div>
+                <div class="loader-stage" id="stage3"><i class="fa-solid fa-brain"></i> 3. Running tumor classifier</div>
+                <div class="loader-stage" id="stage4"><i class="fa-solid fa-microscope"></i> 4. Running segmentation model</div>
+                <div class="loader-stage" id="stage5"><i class="fa-solid fa-file-waveform"></i> 5. Generating clinical report</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Futuristic Navbar -->
+    <nav class="navbar navbar-expand-lg sticky-top">
+        <div class="container-fluid px-4">
+            <span class="navbar-brand">
+                <i class="fa-solid fa-network-wired"></i>
+                NeuroAI Platform
+            </span>
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <i class="fa-solid fa-bars text-white"></i>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto ms-4">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/doctor_dashboard"><i class="fa-solid fa-chart-line me-2"></i>Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/analyzer"><i class="fa-solid fa-microchip me-2"></i>MRI Analyzer</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/patients"><i class="fa-solid fa-users me-2"></i>Patients</a>
+                    </li>
+                </ul>
+                <div class="d-flex align-items-center mt-3 mt-lg-0">
+                    <a href="/profile" class="text-white text-decoration-none me-4 fw-medium"><i class="fa-solid fa-user-astronaut me-2"></i> {{ session['user'].split('@')[0] | title if session.get('user') else 'Profile' }}</a>
+                    <a href="/logout" class="btn btn-danger btn-sm"><i class="fa-solid fa-power-off me-2"></i> Logout</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container mt-5 mb-5">
+        {% if error %}
+        <div class="row justify-content-center animate-up mb-3">
+            <div class="col-lg-8">
+                <div class="alert alert-danger shadow-sm border-0 border-start border-5 border-danger" role="alert">
+                    <i class="fa-solid fa-triangle-exclamation me-2"></i> {{ error }}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if progression_alert %}
+        <div class="row justify-content-center animate-up mb-3">
+            <div class="col-lg-11">
+                <div class="alert alert-warning shadow-sm border-0 border-start border-5 border-danger" role="alert" style="background-color: #fff3cd; color: #856404;">
+                    <i class="fa-solid fa-bell text-danger me-2"></i> <strong>Tumor progression detected:</strong> The severity stage has increased since the patient's last approved scan.
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if not result %}
+        <div class="row justify-content-center animate-up">
+            <div class="col-lg-8">
+                
+                <form action="/fullscan" method="POST" enctype="multipart/form-data" id="uploadForm">
+                    <input type="hidden" name="analysis_mode" value="full">
+                    
+                    <div class="clinical-card glass-panel animate-up delay-2" id="analyzer">
+                        <h4 class="clinical-card-title"><i class="fa-solid fa-microchip text-accent"></i> Full AI Diagnostic</h4>
+                        <p class="clinical-card-subtitle">Detection + Classification + Stage + 3D Segment Visualization.</p>
+                        <div class="mb-4 text-start px-3">
+                            <label class="form-label text-muted fw-bold small"><i class="fa-solid fa-user me-2"></i>PATIENT NAME</label>
+                            <input type="text" name="patient_name" class="form-control form-control-lg bg-light" placeholder="Enter Patient Name" required>
+                        </div>
+                        <div class="drop-zone" id="dropZone">
+                            <i class="fa-solid fa-file-arrow-up main-icon"></i>
+                            <h5 id="fileNameDisplay" class="mb-2">Drag & Drop Scan File</h5>
+                            <p class="text-muted small mb-0 fw-medium">or click to browse local files</p>
+                            <input type="file" name="file" id="fileInput" accept=".nii,.nii.gz" required>
+                        </div>
+                        <button type="submit" class="btn btn-accent w-100 py-3 fs-5"><i class="fa-solid fa-bolt me-2"></i> Initialize AI Pipeline</button>
+                    </div>
+                </form>
+
+            </div>
+        </div>
+        {% endif %}
+
+        {% if result %}
+        <div class="row justify-content-center animate-up">
+            <div class="col-lg-11">
+                <div class="clinical-card glass-panel">
+                    
+                    <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3" style="border-color: var(--border)!important;">
+                        <h3 class="report-header mb-0 border-0 pb-0"><i class="fa-solid fa-notes-medical"></i> Automated AI Diagnostic Report</h3>
+                        <a href="/fullscan" class="btn btn-primary btn-sm"><i class="fa-solid fa-rotate-left me-2"></i>New Scan</a>
+                    </div>
+                    
+                    <div class="result-grid">
+                        <div class="result-box">
+                            <h5><i class="fa-solid fa-eye text-accent me-2"></i>1. Detection Status</h5>
+                            <p class="result-text {% if 'No Tumor' in result %}text-success-custom{% else %}text-danger-custom{% endif %}">
+                                {{ result }}
+                            </p>
+                        </div>
+
+                        <div class="result-box">
+                            <h5><i class="fa-solid fa-dna text-accent me-2"></i>2. Variant Classification</h5>
+                            <p class="result-text">{{ tumor_type | title }}</p>
+                            
+                            {% if confidence %}
+                            <div class="mt-3">
+                                <h5>
+                                    <i class="fa-solid fa-chart-pie text-accent me-2"></i>3. AI Confidence ({{ confidence }}%)
+                                    {% if confidence < 50 %}
+                                        <span class="badge bg-danger ms-2">Low Confidence</span>
+                                    {% elif confidence < 75 %}
+                                        <span class="badge bg-warning text-dark ms-2">Moderate Confidence</span>
+                                    {% else %}
+                                        <span class="badge bg-success ms-2">High Confidence</span>
+                                    {% endif %}
+                                </h5>
+                                <div class="confidence-container">
+                                    <div class="confidence-bar {% if confidence < 50 %}bg-danger{% elif confidence < 75 %}bg-warning{% else %}bg-success{% endif %}" style="width: 0%;" data-width="{{ confidence }}%"></div>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="result-box">
+                            <h5><i class="fa-solid fa-layer-group text-accent me-2"></i>4. Severity Stage</h5>
+                            <p class="result-text">{{ stage }}</p>
+                            <div class="d-flex mt-2 gap-1">
+                                <div class="flex-grow-1" style="height: 6px; border-radius: 3px; background: {% if stage == 'Stage 1' %}var(--success){% else %}var(--border){% endif %};"></div>
+                                <div class="flex-grow-1" style="height: 6px; border-radius: 3px; background: {% if stage == 'Stage 2' %}var(--warning){% else %}var(--border){% endif %};"></div>
+                                <div class="flex-grow-1" style="height: 6px; border-radius: 3px; background: {% if stage == 'Stage 3' %}#F97316{% else %}var(--border){% endif %};"></div>
+                                <div class="flex-grow-1" style="height: 6px; border-radius: 3px; background: {% if stage == 'Stage 4' %}var(--danger){% else %}var(--border){% endif %};"></div>
+                            </div>
+                        </div>
+
+                        {% if result != 'No Tumor Detected' %}
+                        <div class="result-box">
+                            <h5><i class="fa-solid fa-cube text-accent me-2"></i>5. Tumor Volume</h5>
+                            <p class="result-text">{{ tumor_volume }} cm³</p>
+                            <div class="mt-2 text-muted small"><i class="fa-solid fa-circle-info me-1"></i>3D voxel mass calculation</div>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="viewer-panel">
+                                <div class="viewer-header">
+                                    <h5><i class="fa-solid fa-vr-cardboard me-2"></i>6. Annotated MRI Viewer</h5>
+                                    <span class="badge bg-primary">Slice Analysis</span>
+                                </div>
+                                <div class="p-3 text-center bg-dark">
+                                    <img src="{{ image }}" class="result-image" alt="Segmented MRI" style="max-height: 400px; width: auto; max-width: 100%;">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-2">
+                        <div class="col-12">
+                            <div class="result-box" style="border-left: 4px solid var(--accent); max-height: 600px; overflow-y: auto;">
+                                <h5 class="mb-4 text-accent"><i class="fa-solid fa-stethoscope me-2"></i>7. Clinical Notes & Observations</h5>
+                                
+                                {% if clinical_report %}
+                                <div class="clinical-report-content px-3 py-2 bg-light rounded shadow-sm">
+                                    
+                                    <h6 class="text-primary fw-bold text-uppercase border-bottom pb-2 mb-3">A. Patient Information</h6>
+                                    <div class="row mb-4">
+                                        <div class="col-md-3 border-end"><strong>Name:</strong> <br>{{ clinical_report.patient_info.name }}</div>
+                                        <div class="col-md-3 border-end"><strong>Scan Date:</strong> <br>{{ clinical_report.patient_info.scan_date }}</div>
+                                        <div class="col-md-3 border-end"><strong>Scan Type:</strong> <br>{{ clinical_report.patient_info.scan_type }}</div>
+                                        <div class="col-md-3"><strong>Organ Analyzed:</strong> <br>{{ clinical_report.patient_info.organ }}</div>
+                                    </div>
+                                    
+                                    <h6 class="text-primary fw-bold text-uppercase border-bottom pb-2 mb-3">B. Detection Summary</h6>
+                                    <div class="row mb-4">
+                                        <div class="col-md-4"><strong>Status:</strong> <br>
+                                            <span class="badge fs-6 {% if clinical_report.detection_summary.tumor_detected == 'Not Detected' %}bg-success{% else %}bg-danger{% endif %}">{{ clinical_report.detection_summary.tumor_detected }}</span>
+                                        </div>
+                                        <div class="col-md-4"><strong>Tumor Type:</strong> <br>
+                                            <span class="badge fs-6 bg-primary">{{ clinical_report.detection_summary.tumor_type }}</span>
+                                        </div>
+                                        <div class="col-md-4"><strong>Confidence Score:</strong> <br>{{ clinical_report.detection_summary.confidence }}</div>
+                                    </div>
+                                    
+                                    {% if clinical_report.detection_summary.tumor_detected != 'Not Detected' %}
+                                    <h6 class="text-primary fw-bold text-uppercase border-bottom pb-2 mb-3">C. Tumor Characteristics</h6>
+                                    <div class="row mb-4">
+                                        <div class="col-md-4"><strong>Location:</strong> <br>{{ clinical_report.tumor_characteristics.location }}</div>
+                                        <div class="col-md-4"><strong>Region:</strong> <br>{{ clinical_report.tumor_characteristics.region }}</div>
+                                        <div class="col-md-4"><strong>Volume:</strong> <br>{{ clinical_report.tumor_characteristics.volume_cm3 }} cm³</div>
+                                    </div>
+                                    
+                                    <h6 class="text-primary fw-bold text-uppercase border-bottom pb-2 mb-3">D. Severity Assessment</h6>
+                                    <div class="row mb-4">
+                                        <div class="col-md-6"><strong>Stage:</strong> <br>
+                                            <span class="badge fs-6 bg-warning text-dark">{{ clinical_report.severity_assessment.stage }}</span>
+                                        </div>
+                                        <div class="col-md-6"><strong>Risk Level:</strong> <br>
+                                            <span class="badge fs-6 {% if clinical_report.severity_assessment.risk_level == 'High' %}bg-danger{% elif clinical_report.severity_assessment.risk_level == 'Moderate' %}bg-warning text-dark{% else %}bg-success{% endif %}">
+                                                {{ clinical_report.severity_assessment.risk_level }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                    
+                                    <h6 class="text-primary fw-bold text-uppercase border-bottom pb-2 mb-3">E. Clinical Findings</h6>
+                                    <p class="mb-4 fs-6">{{ clinical_report.clinical_findings }}</p>
+                                    
+                                    <h6 class="text-primary fw-bold text-uppercase border-bottom pb-2 mb-3">F. Symptoms & Clinical Correlation</h6>
+                                    <p class="mb-4 fs-6">{{ clinical_report.symptoms }}</p>
+                                    
+                                    <h6 class="text-primary fw-bold text-uppercase border-bottom pb-2 mb-3">G. Recommendations</h6>
+                                    <ul class="mb-4 list-group list-group-flush border p-2">
+                                    {% for rec in clinical_report.recommendations %}
+                                        <li class="list-group-item bg-transparent border-0"><i class="fa-solid fa-arrow-right text-accent me-2"></i>{{ rec }}</li>
+                                    {% endfor %}
+                                    </ul>
+                                </div>
+                                {% else %}
+                                <p class="text-secondary mt-3" style="font-size: 1.05rem; line-height: 1.8;">
+                                    {% if result != 'No Tumor Detected' %}
+                                        Based on the {{ stage }} {{ tumor_type | title }} morphology detected, the patient may exhibit the following clinical indications and associated symptoms:<br><br>
+                                        <strong>{{ side_effects }}</strong>
+                                    {% else %}
+                                        Scan appears normal. No anomalous growths or abnormal tissue densities detected. Routine monitoring recommended based on patient history.
+                                    {% endif %}
+                                </p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="text-center mt-4 mb-4">
+                        <div class="d-flex justify-content-center gap-3 flex-wrap">
+                            <a href="/generate_report" class="btn btn-accent btn-lg px-4 py-3 shadow-sm rounded-pill">
+                                <i class="fa-solid fa-file-pdf me-2"></i> Download PDF
+                            </a>
+                            
+                            {% if session.get('role') == 'doctor' and report_id %}
+                            <form action="/approve_report/{{ report_id }}" method="POST" class="d-inline">
+                                <button type="submit" class="btn btn-success btn-lg px-4 py-3 shadow-sm rounded-pill">
+                                    <i class="fa-solid fa-check me-2"></i> Approve Report
+                                </button>
+                            </form>
+                            <form action="/reject_report/{{ report_id }}" method="POST" class="d-inline">
+                                <button type="submit" class="btn btn-outline-danger btn-lg px-4 py-3 shadow-sm rounded-pill">
+                                    <i class="fa-solid fa-xmark me-2"></i> Reject
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    {% if process_time %}
+                    <div class="text-center text-muted small mb-3">
+                        <i class="fa-solid fa-stopwatch me-1"></i> AI Processing Time: <strong>{{ process_time }}s</strong>
+                    </div>
+                    {% endif %}
+
+                    <div class="clinical-alert">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                        <div>
+                            <strong>Clinical Disclaimer:</strong> This portal utilizes artificial intelligence for preliminary scan analysis. It is intended to assist, not replace, formal diagnosis by a certified neuro-oncologist or radiologist.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Interactive Scripts -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('uploadForm');
+            const overlay = document.getElementById('loadingOverlay');
+            const fileInput = document.getElementById('fileInput');
+            const fileNameDisplay = document.getElementById('fileNameDisplay');
+            const dropZone = document.getElementById('dropZone');
+            const stages = [
+                document.getElementById('stage1'),
+                document.getElementById('stage2'),
+                document.getElementById('stage3'),
+                document.getElementById('stage4'),
+                document.getElementById('stage5')
+            ];
+
+            if(form) {
+                form.addEventListener('submit', function(e) {
+                    if (fileInput.files.length === 0) return;
+                    overlay.style.display = 'flex';
+                    
+                    let currentStage = 0;
+                    
+                    function animateStages() {
+                        if (currentStage >= stages.length) return;
+                        
+                        if (currentStage > 0) {
+                            stages[currentStage-1].classList.remove('active');
+                            stages[currentStage-1].classList.add('completed');
+                            stages[currentStage-1].innerHTML = stages[currentStage-1].innerHTML.replace(/<i.*><\/i>/, '<i class="fa-solid fa-check"></i>');
+                        }
+                        
+                        stages[currentStage].classList.add('active');
+                        currentStage++;
+                        setTimeout(animateStages, 800 + Math.random() * 800);
+                    }
+                    setTimeout(animateStages, 200);
+                });
+            }
+
+            if(fileInput && fileNameDisplay) {
+                fileInput.addEventListener('change', function(e) {
+                    if(e.target.files.length > 0) {
+                        fileNameDisplay.innerHTML = `<i class="fa-solid fa-file-medical text-primary me-2"></i>${e.target.files[0].name}`;
+                        fileNameDisplay.classList.add('text-primary');
+                        dropZone.style.borderColor = 'var(--accent)';
+                        dropZone.style.background = 'rgba(0, 229, 255, 0.05)';
+                    }
+                });
+
+                ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                    dropZone.addEventListener(eventName, preventDefaults, false);
+                });
+
+                function preventDefaults (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+
+                ['dragenter', 'dragover'].forEach(eventName => {
+                    dropZone.addEventListener(eventName, highlight, false);
+                });
+
+                ['dragleave', 'drop'].forEach(eventName => {
+                    dropZone.addEventListener(eventName, unhighlight, false);
+                });
+
+                function highlight(e) { dropZone.classList.add('dragover'); }
+                function unhighlight(e) { dropZone.classList.remove('dragover'); }
+                
+                dropZone.addEventListener('drop', function(e) {
+                    let dt = e.dataTransfer;
+                    let files = dt.files;
+                    fileInput.files = files;
+                    
+                    if(files.length > 0) {
+                        fileNameDisplay.innerHTML = `<i class="fa-solid fa-file-medical text-primary me-2"></i>${files[0].name}`;
+                        dropZone.style.borderColor = 'var(--accent)';
+                        dropZone.style.background = 'rgba(0, 229, 255, 0.05)';
+                    }
+                }, false);
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Futuristic Dashboard - Clinical AI Detection</title>
+    <!-- Google Fonts: Inter & Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+            backdrop-filter: blur(4px);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        body.medical-grid-bg {
+            background-color: #f8f9fa;
+        }
+        .text-accent {
+            color: #0d6efd;
+        }
+        .stats-icon {
+            font-size: 2.5rem;
+            opacity: 0.8;
+        }
+        .alert-high-risk {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+        .alert-critical {
+            background-color: #f8d7da;
+            border-left: 4px solid #dc3545;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body class="medical-grid-bg">
+
+    <!-- Futuristic Navbar -->
+    <nav class="navbar navbar-expand-lg sticky-top bg-dark border-bottom border-secondary mb-4">
+        <div class="container-fluid px-4">
+            <span class="navbar-brand text-white fw-bold">
+                <i class="fa-solid fa-notes-medical text-primary"></i>
+                NeuroAI Clinical Platform
+            </span>
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <i class="fa-solid fa-bars text-white"></i>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto ms-4">
+                    <li class="nav-item">
+                        <a class="nav-link active text-white" href="/doctor_dashboard"><i class="fa-solid fa-chart-line me-2 text-primary"></i>Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-light" href="/analyzer"><i class="fa-solid fa-microchip me-2"></i>MRI Analyzer</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-light" href="/patients"><i class="fa-solid fa-users me-2"></i>Patients</a>
+                    </li>
+                </ul>
+                <div class="d-flex align-items-center mt-3 mt-lg-0">
+                    <a href="/profile" class="text-white text-decoration-none me-4 fw-medium"><i class="fa-solid fa-user-md me-2"></i> Doctor</a>
+                    <a href="/logout" class="btn btn-danger btn-sm"><i class="fa-solid fa-power-off me-2"></i> Logout</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container-fluid px-5 mb-5">
+        
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="fw-bold text-dark m-0">Clinical Dashboard Overview</h2>
+            <a href="/export_csv" class="btn btn-primary shadow-sm"><i class="fa-solid fa-file-csv me-2"></i>Export All Reports</a>
+        </div>
+
+        <!-- KPI Cards -->
+        <div class="row">
+            <div class="col-md-3 mb-4">
+                <div class="glass-panel text-center d-flex flex-column justify-content-center h-100 position-relative border-start border-primary border-4">
+                    <i class="fa-solid fa-folder-open text-primary stats-icon mb-2"></i>
+                    <h6 class="text-muted text-uppercase fw-bold mb-1">Total Scans</h6>
+                    <h2 class="mb-0 fw-bold text-dark">{{ total_scans }}</h2>
+                </div>
+            </div>
+            <div class="col-md-3 mb-4">
+                <div class="glass-panel text-center d-flex flex-column justify-content-center h-100 position-relative border-start border-danger border-4">
+                    <i class="fa-solid fa-virus text-danger stats-icon mb-2"></i>
+                    <h6 class="text-muted text-uppercase fw-bold mb-1">Tumors Detected</h6>
+                    <h2 class="mb-0 fw-bold text-dark">{{ tumors_detected }}</h2>
+                </div>
+            </div>
+            <div class="col-md-3 mb-4">
+                <div class="glass-panel text-center d-flex flex-column justify-content-center h-100 position-relative border-start border-warning border-4">
+                    <i class="fa-solid fa-triangle-exclamation text-warning stats-icon mb-2"></i>
+                    <h6 class="text-muted text-uppercase fw-bold mb-1">High Risk Cases</h6>
+                    <h2 class="mb-0 fw-bold text-dark">{{ high_risk_cases }}</h2>
+                    <small class="text-muted">Stage 4 Tumors</small>
+                </div>
+            </div>
+            <div class="col-md-3 mb-4">
+                <div class="glass-panel text-center d-flex flex-column justify-content-center h-100 position-relative border-start border-success border-4">
+                    <i class="fa-solid fa-bullseye text-success stats-icon mb-2"></i>
+                    <h6 class="text-muted text-uppercase fw-bold mb-1">Avg Confidence</h6>
+                    <h2 class="mb-0 fw-bold text-dark">{{ avg_confidence }}%</h2>
+                </div>
+            </div>
+        </div>
+
+        <!-- Middle Layout -->
+        <div class="row">
+            
+            <!-- Left Side: Charts -->
+            <div class="col-lg-8">
+                <div class="glass-panel h-100 d-flex flex-column">
+                    <h5 class="fw-bold mb-4 border-bottom pb-2">Analytics & Trends</h5>
+                    <div class="row flex-grow-1 align-items-center">
+                        <div class="col-md-5 text-center d-flex flex-column">
+                            <h6>Tumor Distribution</h6>
+                            <div class="position-relative w-100" style="height: 300px;">
+                                <canvas id="tumorPieChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="col-md-7 text-center d-flex flex-column mt-4 mt-md-0">
+                            <h6>Weekly Scan Trend</h6>
+                            <div class="position-relative w-100" style="height: 300px;">
+                                <canvas id="trendLineChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Side: Alerts & Insights -->
+            <div class="col-lg-4">
+                
+                <!-- Pending Approvals Notification Panel -->
+                <div class="glass-panel mb-4 shadow-sm" style="max-height: 250px; overflow-y: auto;">
+                    <h5 class="fw-bold text-warning mb-3 border-bottom pb-2"><i class="fa-solid fa-clipboard-check me-2"></i>Pending Approvals</h5>
+                    {% if pending_reports %}
+                        {% for r in pending_reports %}
+                        <div class="alert alert-light border-start border-warning border-4 mb-2 p-2 shadow-sm d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>{{ r[1] }}</strong>
+                                <div class="small text-muted">{{ r[9][:10] }}</div>
+                            </div>
+                            <div class="d-flex gap-1">
+                                <form action="/approve_report/{{ r[0] }}" method="POST" class="d-inline">
+                                    <button type="submit" class="btn btn-sm btn-success" title="Approve Report">Approve Report</button>
+                                </form>
+                                <form action="/reject_report/{{ r[0] }}" method="POST" class="d-inline">
+                                    <button type="submit" class="btn btn-sm btn-danger" title="Reject">Reject</button>
+                                </form>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center text-muted p-3">
+                            <i class="fa-solid fa-check-double text-success fs-3 mb-2 d-block"></i>
+                            All caught up! No pending approvals.
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- High Risk Cases -->
+                <div class="glass-panel mb-4 shadow-sm" style="max-height: 250px; overflow-y: auto;">
+                    <h5 class="fw-bold text-danger mb-3 border-bottom pb-2"><i class="fa-solid fa-bell me-2"></i>High Risk Cases</h5>
+                    {% if critical_alerts %}
+                        {% for alert in critical_alerts %}
+                        <div class="alert-critical">
+                            <i class="fa-solid fa-circle-exclamation text-danger me-2"></i>
+                            <strong>Patient: {{ alert[1] }}</strong>
+                            <div class="small mt-1 text-dark">Stage: 4 | <strong>Alert: Immediate Attention Required</strong></div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center text-muted p-3">
+                            <i class="fa-solid fa-check-circle text-success fs-3 mb-2 d-block"></i>
+                            No High Risk cases detected.
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- AI Insights Panel -->
+                <div class="glass-panel shadow-sm">
+                    <h5 class="fw-bold text-primary mb-3 border-bottom pb-2"><i class="fa-solid fa-lightbulb me-2"></i>AI Insights</h5>
+                    <ul class="list-group list-group-flush small">
+                        {% if total_scans > 0 %}
+                            <li class="list-group-item bg-transparent px-0 border-0">
+                                <strong>Common Variant:</strong> <br>
+                                {% if tumor_data and (tumor_data|sum) > 0 %}
+                                    {% set max_idx = tumor_data.index(tumor_data|max) %}
+                                    {{ tumor_labels[max_idx] | title }} is the most frequently detected tumor type.
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </li>
+                            <li class="list-group-item bg-transparent px-0 border-0 pt-2">
+                                <strong>Detection Rate:</strong> <br>
+                                {{ ((tumors_detected / total_scans) * 100) | round(1) }}% of scans flag an anomaly.
+                            </li>
+                            <li class="list-group-item bg-transparent px-0 border-0 pt-2">
+                                <strong>Critical Volume:</strong> <br>
+                                {{ high_risk_cases }} out of {{ total_scans }} total scans present as Stage 4 (High Risk).
+                            </li>
+                        {% else %}
+                            <li class="list-group-item bg-transparent px-0 text-muted">Insufficient data to generate AI Insights.</li>
+                        {% endif %}
+                    </ul>
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- Recent Scans Table & Timeline -->
+        <div class="row mt-4">
+            
+            <div class="col-lg-9">
+                <div class="glass-panel h-100 shadow-sm">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="fw-bold m-0"><i class="fa-solid fa-clock-rotate-left text-primary me-2"></i>Recent Scans Database</h5>
+                        <a href="/patients" class="btn btn-sm btn-outline-primary shadow-sm">View All Patients</a>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle bg-white rounded overflow-hidden shadow-sm">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Patient Name</th>
+                                    <th>Tumor Type</th>
+                                    <th>Stage</th>
+                                    <th>Confidence</th>
+                                    <th>Date</th>
+                                    <th class="text-center">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if recent_reports %}
+                                    {% for r in recent_reports %}
+                                    <tr>
+                                        <td class="fw-bold"><a href="/patient/{{ r[1] }}" class="text-decoration-none text-dark">{{ r[1] }}</a></td>
+                                        <td>
+                                            {% if 'No Tumor' in r[3] %}
+                                                <span class="text-muted">None</span>
+                                            {% else %}
+                                                {{ r[4] | title }}
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if r[5] == 'Stage 4' %}
+                                                <span class="badge bg-danger rounded-pill"><i class="fa-solid fa-circle-exclamation me-1"></i> Critical (Stg 4)</span>
+                                            {% elif r[5] == 'Stage 3' %}
+                                                <span class="badge bg-warning text-dark rounded-pill"><i class="fa-solid fa-triangle-exclamation me-1"></i> Moderate (Stg 3)</span>
+                                            {% elif r[5] in ['Stage 1', 'Stage 2'] %}
+                                                <span class="badge bg-primary rounded-pill"><i class="fa-solid fa-notes-medical me-1"></i> Stable ({{ r[5] }})</span>
+                                            {% else %}
+                                                <span class="badge bg-success rounded-pill"><i class="fa-solid fa-check me-1"></i> Clear</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ r[6] }}%</td>
+                                        <td class="small">{{ r[9] }}</td>
+                                        <td class="text-center">
+                                            <a href="/report/{{ r[0] }}" class="btn btn-sm btn-outline-secondary me-1" title="View Report"><i class="fa-solid fa-eye"></i></a>
+                                            <!-- Delete Button triggers Modal -->
+                                            <button type="button" class="btn btn-sm btn-outline-danger" title="Delete Report" onclick="confirmDelete('{{ r[0] }}')">
+                                                <i class="fa-solid fa-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="6" class="text-center py-4 text-muted">No recent scans found.</td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Activity Timeline -->
+            <div class="col-lg-3 mt-4 mt-lg-0">
+                <div class="glass-panel h-100 shadow-sm" style="max-height: 400px; overflow-y: auto;">
+                    <h5 class="fw-bold mb-4 border-bottom pb-2"><i class="fa-solid fa-timeline text-secondary me-2"></i>Activity Timeline</h5>
+                    <div class="timeline-wrapper px-2">
+                        {% if recent_reports %}
+                            {% for r in recent_reports[:5] %}
+                            <div class="timeline-item mb-3 d-flex position-relative">
+                                <!-- Timeline line indicator -->
+                                <div class="timeline-indicator me-3 d-flex flex-column align-items-center">
+                                    <div class="rounded-circle {% if r[5] == 'Stage 4' %}bg-danger{% elif 'No Tumor' in r[3] %}bg-success{% else %}bg-primary{% endif %}" style="width: 12px; height: 12px; z-index: 2;"></div>
+                                    <div class="bg-secondary" style="width: 2px; height: 100%; opacity: 0.3; margin-top: -6px; padding-bottom: 2rem;"></div>
+                                </div>
+                                <div class="timeline-content pb-3">
+                                    <small class="text-muted fw-bold d-block">{{ r[9][11:16] }} ({{ r[9][:10] }})</small>
+                                    <span class="small d-block text-dark mt-1">Scan processed for <strong>{{ r[1] }}</strong>.</span>
+                                    {% if 'No Tumor' in r[3] %}
+                                        <span class="small text-success">Result: Clear</span>
+                                    {% else %}
+                                        <span class="small text-danger">Result: {{ r[4]|title }} ({{ r[5] }})</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="text-muted small">No recent activity.</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content shadow">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title fw-bold" id="deleteModalLabel"><i class="fa-solid fa-triangle-exclamation me-2"></i>Confirm Deletion</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center p-4">
+                    <i class="fa-regular fa-trash-can text-danger fs-1 mb-3"></i>
+                    <h5 class="text-dark">Are you absolutely sure?</h5>
+                    <p class="text-muted mb-0">This will permanently delete the selected report and its associated MRI image file. This action cannot be undone.</p>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <form id="deleteForm" method="POST" action="">
+                        <button type="submit" class="btn btn-danger fw-bold"><i class="fa-solid fa-trash me-2"></i>Confirm Delete</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Scripts for Charts and Modals -->
+    <script>
+        // Delete Modal Handler
+        function confirmDelete(reportId) {
+            const deleteForm = document.getElementById('deleteForm');
+            deleteForm.action = `/delete_report/${reportId}`;
+            const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+            deleteModal.show();
+        }
+
+        // Initialize Charts when DOM loads
+        document.addEventListener('DOMContentLoaded', function() {
+            // Chart Data Passed from Backend
+            const tumorLabels = {{ tumor_labels | tojson }};
+            const tumorData = {{ tumor_data | tojson }};
+            const trendLabels = {{ trend_labels | tojson }};
+            const trendData = {{ trend_data | tojson }};
+
+            // Tumor Distribution Pie Chart
+            const pieCtx = document.getElementById('tumorPieChart').getContext('2d');
+            
+            // Generate some nice colors for pie chart
+            const pieColors = ['#0d6efd', '#198754', '#ffc107', '#dc3545', '#0dcaf0', '#6f42c1'];
+            
+            new Chart(pieCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: tumorLabels.map(l => l.charAt(0).toUpperCase() + l.slice(1)), 
+                    datasets: [{
+                        data: tumorData,
+                        backgroundColor: pieColors.slice(0, tumorLabels.length),
+                        borderWidth: 2,
+                        borderColor: '#ffffff',
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 20,
+                                font: {
+                                    family: "'Inter', sans-serif"
+                                }
+                            }
+                        }
+                    },
+                    cutout: '65%'
+                }
+            });
+
+            // Weekly Trend Line Chart
+            const lineCtx = document.getElementById('trendLineChart').getContext('2d');
+            
+            // Format labels for nicer display (MM-DD)
+            const formattedDates = trendLabels.map(dateStr => {
+                if(!dateStr) return '';
+                const parts = dateStr.split('-');
+                if(parts.length === 3) return `${parts[1]}/${parts[2]}`;
+                return dateStr;
+            });
+
+            const gradient = lineCtx.createLinearGradient(0, 0, 0, 300);
+            gradient.addColorStop(0, 'rgba(13, 110, 253, 0.4)');
+            gradient.addColorStop(1, 'rgba(13, 110, 253, 0.0)');
+
+            new Chart(lineCtx, {
+                type: 'line',
+                data: {
+                    labels: formattedDates,
+                    datasets: [{
+                        label: 'Total Scans',
+                        data: trendData,
+                        borderColor: '#0d6efd',
+                        backgroundColor: gradient,
+                        borderWidth: 3,
+                        tension: 0.4, // smooth curve
+                        fill: true,
+                        pointBackgroundColor: '#ffffff',
+                        pointBorderColor: '#0d6efd',
+                        pointBorderWidth: 2,
+                        pointRadius: 4,
+                        pointHoverRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1, // Whole number scans
+                                font: {
+                                    family: "'Inter', sans-serif"
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(0,0,0,0.05)'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                font: {
+                                    family: "'Inter', sans-serif"
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Patient Portal - NeuroAI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f4f7f6; }
+        .glass-card {
+            background: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            border: 1px solid rgba(0,0,0,0.05);
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+        .header-bg {
+            background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+            color: #fff;
+            padding: 60px 0 40px;
+            margin-bottom: -40px;
+            border-bottom-left-radius: 30px;
+            border-bottom-right-radius: 30px;
+        }
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        /* Live badge pulse */
+        .live-dot {
+            display: inline-block;
+            width: 9px; height: 9px;
+            border-radius: 50%;
+            background: #28c76f;
+            margin-right: 5px;
+            animation: livepulse 1.4s ease-in-out infinite;
+        }
+        @keyframes livepulse {
+            0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 0 0 rgba(40,199,111,0.6); }
+            50% { opacity: 0.8; transform: scale(1.25); box-shadow: 0 0 0 6px rgba(40,199,111,0); }
+        }
+
+        /* Real-time ticker bar */
+        .rt-bar {
+            background: rgba(13,110,253,0.07);
+            border-bottom: 1px solid rgba(13,110,253,0.1);
+            padding: 6px 0;
+            font-size: 0.82rem;
+            color: #0d6efd;
+            font-weight: 500;
+        }
+
+        /* Navbar */
+        .navbar-nav-custom .btn { font-size: 0.82rem; }
+
+        /* Auto-refresh progress bar */
+        #refreshBar {
+            position: fixed;
+            bottom: 0; left: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #0d6efd, #0dcaf0);
+            width: 0%;
+            transition: width linear;
+            z-index: 9999;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Real-time top ticker bar -->
+    <div class="rt-bar text-center">
+        <span class="live-dot"></span>
+        <span id="liveClockLabel">NeuroAI Live</span>
+        &nbsp;·&nbsp;
+        <span id="rtClock">--:--:--</span>
+        &nbsp;·&nbsp;
+        <span id="lastRefreshedLabel">Last updated: just now</span>
+        &nbsp;·&nbsp;
+        <small class="opacity-75">Auto-refreshes every 60s</small>
+    </div>
+
+    <!-- Auto-refresh progress indicator -->
+    <div id="refreshBar"></div>
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-transparent position-absolute w-100" style="top: 32px;">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="/patient_dashboard"><i class="fa-solid fa-brain me-2"></i>NeuroAI Patient</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#patientNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse justify-content-end navbar-nav-custom" id="patientNav">
+                <a href="/hospitals" class="btn btn-outline-light btn-sm me-2">
+                    <i class="fa-solid fa-hospital-user me-1"></i>Nearby Hospitals
+                </a>
+                <a href="/profile" class="btn btn-outline-light btn-sm me-2"><i class="fa-solid fa-user me-1"></i>Profile</a>
+                <a href="/logout" class="btn btn-outline-light btn-sm"><i class="fa-solid fa-power-off me-2"></i>Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Header Section -->
+    <div class="header-bg text-center" style="padding-top: 72px;">
+        <div class="container pt-5">
+            <h2 class="fw-bold">Welcome, {{ patient_name }}</h2>
+            <p class="lead opacity-75">Your comprehensive neurological health summary.</p>
+            <div class="d-inline-flex align-items-center gap-2 mt-1 px-3 py-1 rounded-pill"
+                 style="background: rgba(255,255,255,0.15); font-size: 0.85rem;">
+                <span class="live-dot"></span>
+                <span>Live Dashboard</span>
+                <span class="opacity-75" id="headerClock"></span>
+            </div>
+        </div>
+    </div>
+
+    <div class="container mt-5 position-relative">
+        
+        <!-- Alerts for success (e.g., upload) -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm" role="alert">
+                    <i class="fa-solid fa-circle-check me-2"></i>{{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        <div class="row">
+            <!-- Left Column -->
+            <div class="col-lg-8">
+                
+                <!-- Health Summary & Latest Scan -->
+                <div class="glass-card">
+                    <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-4 flex-wrap gap-2">
+                        <h4 class="fw-bold mb-0"><i class="fa-solid fa-heart-pulse text-danger me-2"></i>Health Summary</h4>
+                        <span class="badge rounded-pill d-flex align-items-center gap-1"
+                              style="background:rgba(40,199,111,0.12); color:#1a9b57; border:1px solid rgba(40,199,111,0.3); font-size:0.78rem; padding: 5px 12px;">
+                            <span class="live-dot" style="width:7px;height:7px;margin-right:3px;"></span> LIVE
+                        </span>
+                    </div>
+                    
+                    {% if latest_report %}
+                        <div class="row align-items-center">
+                            <div class="col-md-5 text-center">
+                                {% if latest_report[5] %}
+                                    <img src="/{{ latest_report[5] }}" class="img-fluid rounded shadow-sm" alt="MRI Scan">
+                                {% else %}
+                                    <div class="bg-light rounded p-5 text-muted"><i class="fa-regular fa-image fa-3x mb-2"></i><br>Image Unavailable</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-7 mt-3 mt-md-0">
+                                <h5 class="fw-bold">{{ latest_report[1] }}</h5>
+                                <p class="text-muted small mb-3">Analyzed on {{ latest_report[6][:10] }}</p>
+                                
+                                <div class="mb-3">
+                                    <strong>AI Diagnosis:</strong> 
+                                    {% if 'No Tumor' in latest_report[1] %}
+                                        <span class="text-success"><i class="fa-solid fa-check-circle me-1"></i>Clear</span>
+                                    {% else %}
+                                        <span class="text-danger fw-bold">{{ latest_report[2] | title }} ({{ latest_report[3] }})</span>
+                                    {% endif %}
+                                </div>
+                                
+                                <!-- Confidence Level -->
+                                {% set conf = latest_report[4] %}
+                                <div class="mb-3">
+                                    <strong>Confidence Level:</strong>
+                                    {% if conf > 75 %}
+                                        <span class="status-badge bg-success text-white">High ({{ conf }}%)</span>
+                                    {% elif conf >= 50 %}
+                                        <span class="status-badge bg-warning text-dark">Medium ({{ conf }}%)</span>
+                                    {% else %}
+                                        <span class="status-badge bg-danger text-white">Low ({{ conf }}%)</span>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="p-3 bg-light rounded text-dark small border">
+                                    <strong><i class="fa-solid fa-notes-medical text-primary me-1"></i>Clinical Note:</strong><br>
+                                    {{ explanation }}
+                                    {% if symptoms and symptoms != 'None' %}
+                                        <br><br><strong>Symptoms:</strong> {{ symptoms }}
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="text-center p-4 text-muted">
+                            <i class="fa-solid fa-folder-open fa-3x mb-3 text-secondary opacity-50"></i>
+                            <h5>No Approved Scans Yet</h5>
+                            <p>Upload a scan to get started with your analysis.</p>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Tumor Progression Graph -->
+                {% if chart_labels and chart_data %}
+                <div class="glass-card">
+                    <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-4 flex-wrap gap-2">
+                        <h4 class="fw-bold mb-0"><i class="fa-solid fa-chart-line text-primary me-2"></i>Tumor Progression</h4>
+                        <span class="text-muted small"><i class="fa-regular fa-clock me-1"></i>Live tracking enabled</span>
+                    </div>
+                    <p class="text-muted small">Tracking severity stage over time (Stage 1 to 4).</p>
+                    <div style="height: 300px; position: relative;">
+                        <canvas id="progressionChart"></canvas>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Scan History Table -->
+                <div class="glass-card">
+                    <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-4 flex-wrap gap-2">
+                        <h4 class="fw-bold mb-0"><i class="fa-solid fa-clock-rotate-left text-secondary me-2"></i>Scan History</h4>
+                        <button class="btn btn-outline-primary btn-sm rounded-pill" onclick="location.reload()" id="refreshBtn">
+                            <i class="fa-solid fa-arrows-rotate me-1" id="refreshIcon"></i>Refresh
+                        </button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Status</th>
+                                    <th>Result / Stage</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for r in reports %}
+                                <tr>
+                                    <td>{{ r[6][:10] }}</td>
+                                    <td><span class="badge bg-success"><i class="fa-solid fa-check me-1"></i>Approved</span></td>
+                                    <td>
+                                        {% if 'No Tumor' in r[1] %}
+                                            <span class="text-success fw-medium">Clear</span>
+                                        {% else %}
+                                            <span class="text-danger fw-medium">{{ r[2]|title }} ({{ r[3] }})</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                                
+                                {% if not reports and not pending_reports %}
+                                <tr>
+                                    <td colspan="3" class="text-center text-muted py-3">No scans uploaded yet.</td>
+                                </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+            </div><!-- End Left Col -->
+            
+            <!-- Right Column -->
+            <div class="col-lg-4">
+
+                <!-- Live Status Card -->
+                <div class="glass-card" style="border-left: 4px solid #28c76f; background: rgba(40,199,111,0.03);">
+                    <div class="d-flex align-items-center gap-3 mb-3">
+                        <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#28c76f,#20a85c);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                            <i class="fa-solid fa-satellite-dish text-white"></i>
+                        </div>
+                        <div>
+                            <div class="fw-bold" style="color:#1a9b57;">Real-Time Monitor</div>
+                            <div class="text-muted small">System status</div>
+                        </div>
+                    </div>
+                    <div class="d-flex flex-column gap-2 small">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted"><i class="fa-solid fa-circle-dot me-1 text-success"></i>AI Engine</span>
+                            <span class="badge bg-success bg-opacity-10 text-success border border-success" style="font-size:0.72rem;">Online</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted"><i class="fa-solid fa-circle-dot me-1 text-success"></i>Hospital Feed</span>
+                            <span class="badge bg-success bg-opacity-10 text-success border border-success" style="font-size:0.72rem;">Live</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted"><i class="fa-solid fa-clock me-1"></i>Current Time</span>
+                            <span class="fw-bold text-dark" id="sidebarClock">--:--:--</span>
+                        </div>
+                    </div>
+                </div>
+
+
+
+                <!-- Upload New Scan -->
+                <div class="glass-card text-center bg-primary bg-opacity-10 border-primary border-opacity-25">
+                    <h5 class="fw-bold text-primary mb-3"><i class="fa-solid fa-cloud-arrow-up me-2"></i>Upload New Scan</h5>
+                    <p class="text-muted small">Upload your latest MRI (.nii format) for AI analysis.</p>
+                    <form action="/patient_dashboard" method="POST" enctype="multipart/form-data">
+                        <div class="p-4 bg-white border rounded shadow-sm mb-3" style="border: 2px dashed #0d6efd !important; cursor: pointer;" onclick="document.getElementById('fileInput').click()">
+                            <i class="fa-solid fa-file-medical text-primary fa-3x mb-2"></i>
+                            <h6 class="m-0 text-primary">Browse Files</h6>
+                        </div>
+                        <input type="file" name="file" id="fileInput" class="d-none" accept=".nii" required onchange="document.getElementById('fileName').innerText = this.files[0].name">
+                        <div id="fileName" class="small text-dark mb-3 fw-medium"></div>
+                        <button type="submit" class="btn btn-primary w-100 fw-bold rounded-pill shadow-sm">Run AI Analysis</button>
+                    </form>
+                </div>
+                
+                <!-- General Info -->
+                <div class="glass-card bg-light border-0">
+                    <h6 class="fw-bold"><i class="fa-solid fa-circle-info text-secondary me-2"></i>About Your Analysis</h6>
+                    <p class="small text-muted mb-0 mt-3">
+                        Your MRI scans are securely processed by our real-time NeuroAI systems. Once uploaded, the AI immediately extracts diagnostics so you can view your results instantly without waiting for a clinical queue.
+                        <strong>If anomalous patterns are detected</strong>, always consult directly with your care provider.
+                    </p>
+                </div>
+
+
+
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    {% if chart_labels and chart_data %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const ctx = document.getElementById('progressionChart').getContext('2d');
+            const labels = {{ chart_labels | tojson }};
+            const data = {{ chart_data | tojson }};
+            
+            const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+            gradient.addColorStop(0, 'rgba(220, 53, 69, 0.3)');
+            gradient.addColorStop(1, 'rgba(220, 53, 69, 0.0)');
+
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Severity Stage',
+                        data: data,
+                        borderColor: '#dc3545',
+                        backgroundColor: gradient,
+                        borderWidth: 3,
+                        tension: 0.3,
+                        fill: true,
+                        pointBackgroundColor: '#fff',
+                        pointBorderColor: '#dc3545',
+                        pointRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 4,
+                            ticks: {
+                                stepSize: 1,
+                                callback: function(value) {
+                                    if(value === 0) return 'Clear';
+                                    return 'Stage ' + value;
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+        });
+    </script>
+    {% endif %}
+
+    <!-- Real-time clock & auto-refresh -->
+    <script>
+        // ── Live Clock ──────────────────────────────────
+        function updateClock() {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('en-IN', { hour12: false });
+            const dateStr = now.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
+            document.getElementById('rtClock').textContent = dateStr + ' · ' + timeStr;
+            document.getElementById('headerClock').textContent = timeStr;
+
+            const sb = document.getElementById('sidebarClock');
+            if (sb) sb.textContent = timeStr;
+        }
+        updateClock();
+        setInterval(updateClock, 1000);
+
+        // ── Last Refreshed Label ────────────────────────
+        const pageLoadTime = Date.now();
+        function updateLastRefreshed() {
+            const elapsed = Math.floor((Date.now() - pageLoadTime) / 1000);
+            let label;
+            if (elapsed < 10) label = 'just now';
+            else if (elapsed < 60) label = elapsed + 's ago';
+            else label = Math.floor(elapsed / 60) + 'm ago';
+            document.getElementById('lastRefreshedLabel').textContent = 'Last updated: ' + label;
+        }
+        setInterval(updateLastRefreshed, 10000);
+
+        // ── Auto-Refresh Progress Bar (60-second cycle) ──
+        const AUTO_REFRESH_MS = 60000;
+        const bar = document.getElementById('refreshBar');
+        let barStart = Date.now();
+
+        function animateBar() {
+            const elapsed = Date.now() - barStart;
+            const pct = Math.min((elapsed / AUTO_REFRESH_MS) * 100, 100);
+            bar.style.width = pct + '%';
+            if (elapsed >= AUTO_REFRESH_MS) {
+                bar.style.width = '100%';
+                setTimeout(() => location.reload(), 200);
+            } else {
+                requestAnimationFrame(animateBar);
+            }
+        }
+        requestAnimationFrame(animateBar);
+
+        // ── Manual refresh button ───────────────────────
+        document.getElementById('refreshBtn').addEventListener('click', function(e) {
+            e.preventDefault();
+            const icon = document.getElementById('refreshIcon');
+            icon.style.animation = 'spin 0.6s linear';
+            setTimeout(() => location.reload(), 300);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>View Report - NeuroAI</title>
+    <!-- Google Fonts: Inter & Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="medical-grid-bg">
+
+    <!-- Futuristic Navbar -->
+    <nav class="navbar navbar-expand-lg sticky-top">
+        <div class="container-fluid px-4">
+            <span class="navbar-brand">
+                <i class="fa-solid fa-network-wired"></i>
+                NeuroAI Platform
+            </span>
+            <div class="d-flex align-items-center mt-3 mt-lg-0">
+                <a href="/doctor_dashboard" class="btn btn-primary btn-sm me-3"><i class="fa-solid fa-arrow-left me-2"></i> Back to Dashboard</a>
+                <a href="/logout" class="btn btn-danger btn-sm"><i class="fa-solid fa-power-off me-2"></i> Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container mt-5 mb-5 animate-up">
+        <div class="row justify-content-center">
+            <div class="col-lg-9">
+                <div class="clinical-card glass-panel">
+                    
+                    <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3" style="border-color: var(--border)!important;">
+                        <h3 class="report-header mb-0 border-0 pb-0"><i class="fa-solid fa-clipboard-user text-accent me-2"></i> Historical Patient Report</h3>
+                        <span class="badge bg-secondary fs-6">{{ report.date }}</span>
+                    </div>
+                    
+                    <div class="row mb-4">
+                        <div class="col-sm-6 mb-3">
+                            <div class="p-3 bg-dark rounded border border-secondary shadow-sm">
+                                <span class="text-muted d-block small mb-1">PATIENT NAME</span>
+                                <h4 class="mb-0 text-white">{{ report.patient_name }}</h4>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 mb-3">
+                            <div class="p-3 bg-dark rounded border border-secondary shadow-sm">
+                                <span class="text-muted d-block small mb-1">ATTENDING DOCTOR</span>
+                                <h4 class="mb-0 text-white">{{ report.doctor_email }}</h4>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="result-grid mb-4">
+                        <div class="result-box">
+                            <h5><i class="fa-solid fa-eye text-accent me-2"></i>Detection Status</h5>
+                            <p class="result-text {% if 'No Tumor' in report.result %}text-success-custom{% else %}text-danger-custom{% endif %}">
+                                {{ report.result }}
+                            </p>
+                        </div>
+
+                        <div class="result-box">
+                            <h5><i class="fa-solid fa-dna text-accent me-2"></i>Variant Classification</h5>
+                            <p class="result-text">{{ report.tumor_type | title }}</p>
+                        </div>
+
+                        <div class="result-box">
+                            <h5><i class="fa-solid fa-layer-group text-accent me-2"></i>Severity Stage</h5>
+                            <p class="result-text">{{ report.stage }}</p>
+                        </div>
+                    </div>
+
+                    {% if report.image_path %}
+                    <div class="viewer-panel mt-4">
+                        <div class="viewer-header">
+                            <h5><i class="fa-solid fa-vr-cardboard me-2"></i>Segmented MRI Viewer</h5>
+                            <span class="badge bg-primary">Slice Analysis</span>
+                        </div>
+                        <div class="p-3 text-center bg-dark">
+                            <img src="/{{ report.image_path }}" class="result-image" alt="Segmented MRI">
+                        </div>
+                    </div>
+                    {% endif %}
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Profile - Clinical AI Detection</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg sticky-top">
+        <div class="container-fluid px-4">
+            <span class="navbar-brand">
+                <i class="fa-solid fa-staff-snake"></i>
+                Clinical Diagnostic AI
+            </span>
+            <div class="d-flex align-items-center">
+                <a href="/dashboard" class="text-white text-decoration-none me-4 fw-medium"><i class="fa-solid fa-house-medical me-2"></i> Dashboard</a>
+                <a href="/logout" class="btn btn-danger btn-sm"><i class="fa-solid fa-power-off me-2"></i> End Session</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container mt-5 mb-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+
+                <div class="clinical-card">
+                    <h4 class="clinical-card-title"><i class="fa-solid fa-user-circle text-accent"></i> My Profile</h4>
+                    <p class="clinical-card-subtitle mb-4">Manage your account information.</p>
+
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for cat, message in messages %}
+                            <div class="alert alert-{{ cat }} alert-dismissible fade show" role="alert">
+                                <i class="fa-solid fa-circle-check me-2"></i>{{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+
+                    <!-- Name Row -->
+                    <div class="row mb-3">
+                        <div class="col-md-6 mb-3 mb-md-0">
+                            <div class="result-box h-100">
+                                <h5 class="text-muted" style="font-size: 0.9rem;"><i class="fa-solid fa-user me-2 text-primary"></i>Display Name</h5>
+                                <form action="/update_name" method="POST" class="d-flex mt-2">
+                                    <input type="text" name="name" value="{{ name }}" class="form-control me-2" required>
+                                    <button type="submit" class="btn btn-primary btn-sm text-nowrap">Update</button>
+                                </form>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="result-box h-100">
+                                <h5 class="text-muted" style="font-size: 0.9rem;"><i class="fa-solid fa-envelope me-2 text-primary"></i>Email</h5>
+                                <p class="mb-0 fs-5 fw-medium mt-2" style="color: var(--primary);">{{ email }}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if role == 'patient' %}
+                    <!-- City Row — only for patients -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="result-box" style="border-left: 3px solid #0dcaf0;">
+                                <h5 class="text-muted" style="font-size: 0.9rem;"><i class="fa-solid fa-location-dot me-2 text-info"></i>Your City <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 ms-1" style="font-size: 0.7rem;">Hospital Recommendations</span></h5>
+                                <p class="text-muted small mb-2 mt-1">Used to suggest nearby hospitals after your scan results.</p>
+                                <form action="/update_city" method="POST" class="d-flex">
+                                    <input type="text" name="city" value="{{ city }}" class="form-control me-2" placeholder="e.g. Chennai, Mumbai, Delhi">
+                                    <button type="submit" class="btn btn-info btn-sm text-nowrap text-white fw-medium">Update City</button>
+                                </form>
+                                {% if city %}
+                                <div class="mt-2 small text-success"><i class="fa-solid fa-check-circle me-1"></i>Current city: <strong>{{ city }}</strong></div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="clinical-alert">
+                        <i class="fa-solid fa-shield-halved fs-5"></i>
+                        <div>
+                            <strong>Security Protocol:</strong> Access to the clinical diagnostic portal is logged and monitored for compliance.
+                        </div>
+                    </div>
+
+                    <div class="text-center mt-5">
+                        <a href="/dashboard" class="btn btn-primary px-4 py-2"><i class="fa-solid fa-arrow-left me-2"></i> Return to Dashboard</a>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

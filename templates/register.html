@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Registration - Brain Tumor Detection</title>
-    <!-- Google Fonts: Inter -->
+    <title>Registration - Clinical AI Portal</title>
+    <!-- Google Fonts: Inter & Outfit -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Bootstrap CSS -->
@@ -19,25 +19,36 @@
 
     <div class="auth-card">
         <div class="auth-logo">
-            <i class="fa-solid fa-user-plus"></i>
+            <i class="fa-solid fa-user-doctor"></i>
         </div>
-        <h2 class="auth-title">Create an Account</h2>
+        <h2 class="auth-title">Provider Onboarding</h2>
+        <p class="auth-subtitle">Register for Clinical AI Portal Access</p>
         
         <form method="POST">
             <div class="mb-3">
-                <input type="text" name="name" placeholder="Full Name" class="form-control" required>
+                <label>Provider Full Name</label>
+                <input type="text" name="name" placeholder="Dr. John Doe" class="form-control" required>
             </div>
             <div class="mb-3">
-                <input type="email" name="email" placeholder="Email Address" class="form-control" required>
+                <label>Clinical Email</label>
+                <input type="email" name="email" placeholder="example@hospital.org" class="form-control" required>
+            </div>
+            <div class="mb-3">
+                <label>Account Role</label>
+                <select name="role" class="form-select" required>
+                    <option value="patient">Patient</option>
+                    <option value="doctor">Doctor</option>
+                </select>
             </div>
             <div class="mb-4">
-                <input type="password" name="password" placeholder="Password" class="form-control" required>
+                <label>Secure Password</label>
+                <input type="password" name="password" placeholder="Choose a strong password" class="form-control" required>
             </div>
-            <button class="btn btn-primary w-100">Register</button>
+            <button class="btn btn-primary w-100"><i class="fa-solid fa-clipboard-check me-2"></i> Submit Registration</button>
         </form>
         
-        <p class="text-center mt-4 mb-0 text-muted">
-            Already registered? <a href="/login">Sign in here</a>
+        <p class="text-center mt-4 mb-0" style="color: var(--text-secondary); font-size: 0.9rem;">
+            Already have credentials? <a href="/login">Secure Login</a>
         </p>
     </div>
 

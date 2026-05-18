@@ -5,3 +5,4 @@ opencv-python-headless==4.9.0.80
 matplotlib==3.8.4
 nibabel==5.2.1
 tensorflow==2.13.0
+reportlab==4.1.0
